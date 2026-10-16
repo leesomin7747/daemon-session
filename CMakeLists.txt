@@ -7,13 +7,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Quick Test)
+add_subdirectory(core)
 
 add_library(daemon_overlay STATIC
     desktop/src/OverlayWindow.cpp
     desktop/src/OverlayWindow.h
 )
 target_include_directories(daemon_overlay PUBLIC desktop/src)
-target_link_libraries(daemon_overlay PUBLIC Qt6::Core Qt6::Gui Qt6::Quick)
+target_link_libraries(daemon_overlay PUBLIC daemon_core Qt6::Core Qt6::Gui Qt6::Quick)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(LayerShellQt REQUIRED)
     target_link_libraries(daemon_overlay PRIVATE LayerShellQt::Interface)

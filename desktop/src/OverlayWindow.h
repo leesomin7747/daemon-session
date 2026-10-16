@@ -1,11 +1,10 @@
 #pragma once
+#include "Session.h"
 
 #include <QQuickView>
 #include <QRectF>
 #include <QVector>
 #include <QPointer>
-
-double projectX(double x, double width, double petWidth, double margin);
 
 class OverlayWindow : public QQuickView
 {

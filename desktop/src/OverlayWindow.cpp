@@ -1,24 +1,11 @@
 #include "OverlayWindow.h"
 #include <QGuiApplication>
 #include <QScreen>
-#include <algorithm>
 #include <cmath>
 
 #ifdef DAEMON_LAYER_SHELL
 #include <LayerShellQt/Window>
 #endif
-
-double projectX(double x, double width, double petWidth, double margin)
-{
-    if (!std::isfinite(width) || !std::isfinite(petWidth) || width <= petWidth || petWidth < 0)
-        return 0;
-    if (!std::isfinite(x))
-        x = 0.5;
-    if (!std::isfinite(margin))
-        margin = 0;
-    margin = std::clamp(margin, 0.0, (width - petWidth) / 2);
-    return margin + std::clamp(x, 0.0, 1.0) * (width - petWidth - 2 * margin);
-}
 
 OverlayWindow::OverlayWindow(QScreen* screen, QObject* parent)
 {

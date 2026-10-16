@@ -87,7 +87,7 @@
 - `Command { QString requestId; Action action; PeerId targetId; QString text; bool busy; }`. actor는 인증된 연결에서 가져오고 클라이언트가 보낸 actor를 신뢰하지 않는다.
 - `PeerState { PeerId id; bool reachable; bool busy; QString wip; double x; bool pinned; QVector<InboxItem> inbox; }`.
 - `SessionState { QString epoch; quint64 revision; QMap<PeerId,PeerState> peers; }`.
-- `SessionEvent { QString eventId; QString requestId; QString epoch; quint64 revision; Action action; PeerId actorId; PeerId targetId; QString caption; QString bubble; double finalX; bool queued; }`.
+- `SessionEvent { QString eventId; QString requestId; QString epoch; quint64 revision; Action action; PeerId actorId; PeerId targetId; QString caption; QString bubble; double finalX; bool queued; QString text; bool busy; }`. text는 쪽지/WIP 변경 내용, busy는 대상의 확정된 상태이며 클라이언트가 이벤트만으로 변경을 재현할 수 있게 함께 전달한다.
 - `Transition { SessionState state; std::optional<SessionEvent> event; QString error; }`.
 - `InboxItem { QString eventId; Action kind; QString text; }`; 쪽지와 busy 중 선물은 표시 가능한 항목으로 보존한다.
 - `encodeCommand(const Command&) -> QByteArray`, `decodeCommand(const QByteArray&) -> std::optional<Command>`, `encodeEvent(const SessionEvent&) -> QByteArray`, `decodeEvent(const QByteArray&) -> std::optional<SessionEvent>`, `encodeSnapshot(const SessionState&) -> QByteArray`, `decodeSnapshot(const QByteArray&) -> std::optional<SessionState>`.
@@ -105,6 +105,10 @@
 서버는 pair 정보와 토큰 해시만 SQLite에 저장한다. 캐릭터 위치, busy와 미확인 항목은 세션 메모리에 있다. 웹 로그인·OAuth·Redis·큐 서비스는 초기 구성에 필요하지 않다. 외부 배포 연결은 WSS이며 개발용 평문 WS는 loopback 주소에 한정한다.
 
 전송 봉투는 `{ "v": 1, "op": "...", "requestId": "...", "body": {} }`다. control 요청은 device.register, auth, invite.create, invite.join, invite.approve, pair.revoke, session.snapshot이고, 행동은 session.command로 보낸다. device.register만 미인증 새 기기에 허용하며 반환한 자격증명으로 소켓을 인증한다. 기존 기기는 연결 후 5초 이내 auth를 보내야 한다. 초대·페어 요청은 인증된 actor만 수행한다. 응답은 동일 requestId의 result 또는 error, 실시간 갱신은 session.event 또는 session.snapshot이다. 초대 발급자에게 join.requested를 보내 승인받는다. 접속 안내는 서버에서 고른 단일 문자열을 session.notice로 양쪽에 보낸다. codec은 body를 직렬화하고 봉투의 버전·operation·크기 검증은 Broker/Client가 함께 사용한다.
+
+Task 2 구현 결정: revision의 JSON 표현은 정밀도 손실을 막는 10진 문자열이며 public C++ 타입은 quint64를 유지한다. 식별자는 비어 있지 않은 최대 128 code point의 제어문자 없는 문자열이다. 모든 codec은 알려진 필드·타입만 허용하며 actor는 command 본문에서 받지 않는다. snapshot은 peers 배열을 사용하고 중복 멤버/받은 항목 ID를 거부한다. 쪽지·WIP는 trim 후 Unicode code point 제한을 적용하고 HTML처럼 보이는 내용도 문자열 그대로 유지한다.
+
+Task 2 구현 결정: 상태가 가득 차면 기존 항목을 버리지 않고 새 요청을 session_full 오류로 거부한다. 16KiB 한도 안에 바깥 통신 봉투용 1KiB와 상태 플래그·revision 증가용 64바이트를 남긴다. 받은 항목 확인은 자기 inbox 전체를 직접 비우는 동작이다. 상대가 offline이어도 online인 사용자의 자기 WIP·busy·확인은 허용하며, 상대에게 보내는 행동은 두 멤버 모두 online이어야 한다. Rope/Lure의 정규화 간격은 각각 0.12/0.16으로 시작하고 화면 투영은 공통 projectX를 사용한다.
 
 ---
 
