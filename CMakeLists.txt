@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Quick Test Sql Network WebSockets)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Quick QuickControls2 QuickTest Test Sql Network WebSockets)
 add_subdirectory(core)
 add_subdirectory(server)
 
@@ -23,6 +23,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 add_subdirectory(probes/overlay)
+add_subdirectory(desktop)
 
 include(CTest)
 if(BUILD_TESTING)

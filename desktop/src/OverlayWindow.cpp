@@ -48,6 +48,13 @@ double OverlayWindow::petX(double x, double petWidth, double margin) const
     return projectX(x, width(), petWidth, margin);
 }
 
+void OverlayWindow::setContentHeight(int height)
+{
+    if (height<=0 || height>1024 || m_contentHeight==height) return;
+    m_contentHeight=height;
+    updatePlacement();
+}
+
 void OverlayWindow::updateInputRegion()
 {
     QRegion region;
@@ -100,5 +107,10 @@ void OverlayWindow::updatePlacement()
             area.left() - full.left(), 0, full.right() - area.right(), full.bottom() - area.bottom()));
     }
 #endif
-    setGeometry(area.x(), area.bottom() - 179, area.width(), 180);
+    const auto height=std::min(m_contentHeight,area.height());
+#ifdef DAEMON_LAYER_SHELL
+    if (QGuiApplication::platformName().startsWith("wayland"))
+        LayerShellQt::Window::get(this)->setDesiredSize(QSize(0,height));
+#endif
+    setGeometry(area.x(), area.bottom()-height+1, area.width(),height);
 }

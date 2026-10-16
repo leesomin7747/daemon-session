@@ -166,9 +166,9 @@ Task 4 구현 결정: 평문 WS는 loopback에만 바인딩하며 브라우저 O
 
 ### Task 5: 승인한 펫 장면과 짧은 행동 연출
 
-**Files:** Create desktop/src/{main.cpp,SceneModel.h,SceneModel.cpp}, desktop/qml/{Main.qml,Pet.qml,ActionMenu.qml}, tests/qml/tst_pet.qml, desktop/CMakeLists.txt. Modify desktop/src/OverlayWindow.*.
+**Files:** Create desktop/src/{main.cpp,SceneModel.h,SceneModel.cpp}, desktop/qml/{Main.qml,Pet.qml,Prop.qml,ActionMenu.qml}, tests/qml/tst_pet.qml, tests/{tst_scenemodel.cpp,tst_pet.cpp,tst_petwindow.cpp}, desktop/CMakeLists.txt, docs/verification/pet-scene.md. Modify desktop/src/OverlayWindow.*.
 
-**Interfaces:** `SceneModel::replaceSnapshot(const SessionState&) -> void`; `applyEvent(const SessionEvent&) -> void`; QML용 peers와 lastEvent properties; `actionRequested(Action, PeerId, QString text, bool busy)` signal. 이 Task에서는 고정 fixture로 로컬 체험한다.
+**Interfaces:** `SceneModel::replaceSnapshot(const SessionState&) -> void`; `applyEvent(const SessionEvent&) -> void`; QML용 peers와 lastEvent properties; `actionRequested(Action, PeerId, QString text, bool busy)` signal. 이 Task에서는 고정 fixture로 로컬 체험한다. SceneModel은 eventAboutToApply/sceneReset으로 연출을 취소·복구하고, snapshotRequired로 잘못된 순서의 복구를 요청한다. requestAction은 상태 변경 없이 검증한 의도만 actionRequested로 내보낸다. OverlayWindow::setContentHeight(int)는 기존 probe의 180px 기본값을 유지하면서 제품 장면 높이를 380px로 설정한다. 입력 mask는 실제 움직이는 아바타·책상·선물·메뉴의 논리 좌표를 따른다. 움직임 줄이기는 메뉴와 CLI에서 명시적으로 설정하며 OS 설정 자동 연동은 아직 없다.
 
 - [ ] **1. `tst_pet.qml`에 두 장면의 동일 이벤트 표시, 각각의 최종 위치 유지, 다른 행동 뒤에도 위치 불변, 연출 중 snapshot 복구, 줄인 움직임에서도 최종 위치 표시, 화면 경계와 소품 클릭 영역 테스트를 작성한다.**
 - [ ] **2. `ctest --test-dir build -R pet --output-on-failure`로 실패를 확인한다.**

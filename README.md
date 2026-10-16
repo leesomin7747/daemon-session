@@ -6,7 +6,7 @@ A desktop space where interactions with daemons make working apart feel like wor
 
 ## 현재 단계
 
-네이티브 오버레이 검증용 앱, 공통 상태 규칙·JSON codec, SQLite 기반 비공개 페어링·기기 인증과 로컬 WebSocket 서버를 구현했습니다. 실제 소켓으로 두 기기의 인증·승인·실시간 동기화·재접속을 검증합니다. 제품 UI와 네트워크의 연결은 다음 단계이며, KDE Wayland 실기 검증은 남아 있습니다.
+네이티브 오버레이 검증용 앱, 공통 상태 규칙·JSON codec, SQLite 기반 비공개 페어링·기기 인증과 로컬 WebSocket 서버를 구현했습니다. 실제 소켓으로 두 기기의 인증·승인·실시간 동기화·재접속을 검증합니다. QML 펫 장면은 로컬 미리보기로 실행할 수 있으며, 제품 UI와 네트워크의 연결 및 KDE Wayland 실기 검증은 남아 있습니다.
 
 첫 MVP는 두 사람의 비공개 세션을 대상으로 하며, 더 많은 데몬을 위한 확장은 이후에 다룹니다. 첫 지원 목표는 macOS와 KDE Plasma의 Wayland 환경입니다.
 
@@ -95,3 +95,17 @@ ctest --preset dev
 ```
 
 서버 실행 파일의 재시작과 실제 QWebSocket 두 개를 사용합니다. UI 체험, OS 비밀 저장소, 인터넷 WSS 및 실제 두 컴퓨터 검증은 아직 후속 작업입니다.
+
+
+## QML 펫 장면 미리보기
+
+```sh
+cmake --build --preset dev
+open build/desktop/daemon-session.app
+```
+
+Linux에서는 `QT_QPA_PLATFORM=wayland ./build/desktop/daemon-session`로 실행하는 구성이며 아직 실기 검증 전입니다. 지금은 고정된 두 기기의 **로컬 미리보기**입니다. 실제 친구에게 접속하거나 데이터를 전송하지 않습니다. 펫을 누르면 장난·선물 메뉴가 펼쳐지고, 내 메뉴에서 busy와 움직임 줄이기를 바꿀 수 있습니다. WIP 편집·쪽지·받은 항목 패널과 실제 Client 연결은 후속 단계입니다.
+
+`--menu`로 키보드에서 내 메뉴를 직접 열고, `--reduced-motion`으로 움직임을 끈 채 시작할 수 있습니다. macOS에서 옵션을 전달하려면 `open build/desktop/daemon-session.app --args --menu`를 사용하세요. 메뉴는 Tab/Shift+Tab과 Enter로 조작하고 Escape로 닫습니다. 애니메이션은 최종 위치를 바꾸지 않으며 서버 이벤트의 같은 문구를 표시합니다.
+
+`ctest --test-dir build -R pet --output-on-failure`는 상태 모델, 실제 QML 장면, 네이티브 입력 mask와 실행 smoke를 검사합니다. 장면·배율·포커스의 실제 결과는 [QML 펫 장면 검증 기록](docs/verification/pet-scene.md)에 있습니다.
