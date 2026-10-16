@@ -74,6 +74,16 @@ private slots:
         QVERIFY(!decodeEvent(QJsonDocument(bad).toJson()));
         QVERIFY(!decodeEvent("{}")); QVERIFY(!decodeSnapshot("{}"));
     }
+    void queuedGiftEventRetainsInboxText()
+    {
+        const SessionEvent event{"e1", "r1", "epoch-1", 1, Action::Energy, "a", "b",
+            "작업을 깨우지 않고, 작은 선물만 놓고 갔어요.", "", 0.75, true,
+            "친구가 에너지음료를 두고 갔어요.", true};
+        auto decoded = decodeEvent(encodeEvent(event));
+        QVERIFY(decoded);
+        QCOMPARE(decoded->text, "친구가 에너지음료를 두고 갔어요.");
+        QVERIFY(decoded->queued); QVERIFY(decoded->busy); QVERIFY(decoded->bubble.isEmpty());
+    }
 };
 QTEST_GUILESS_MAIN(ProtocolTest)
 #include "tst_protocol.moc"

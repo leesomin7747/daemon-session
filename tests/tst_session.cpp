@@ -27,6 +27,11 @@ private slots:
             QVERIFY(result.event->bubble.isEmpty());
             QCOMPARE(result.state.peers["b"].inbox.size(), state.peers["b"].inbox.size() + 1);
             QCOMPARE(result.state.peers["b"].inbox.last().eventId, result.event->eventId);
+            QCOMPARE(result.event->text, result.state.peers["b"].inbox.last().text);
+            auto delivered = decodeEvent(encodeEvent(*result.event)); QVERIFY(delivered);
+            auto restored = decodeSnapshot(encodeSnapshot(result.state)); QVERIFY(restored);
+            QCOMPARE(delivered->text, restored->peers["b"].inbox.last().text);
+            QCOMPARE(delivered->eventId, restored->peers["b"].inbox.last().eventId);
             state = result.state;
         }
         QCOMPARE(state.peers["b"].inbox.last().text, "힘내 ☕");

@@ -87,7 +87,7 @@
 - `Command { QString requestId; Action action; PeerId targetId; QString text; bool busy; }`. actor는 인증된 연결에서 가져오고 클라이언트가 보낸 actor를 신뢰하지 않는다.
 - `PeerState { PeerId id; bool reachable; bool busy; QString wip; double x; bool pinned; QVector<InboxItem> inbox; }`.
 - `SessionState { QString epoch; quint64 revision; QMap<PeerId,PeerState> peers; }`.
-- `SessionEvent { QString eventId; QString requestId; QString epoch; quint64 revision; Action action; PeerId actorId; PeerId targetId; QString caption; QString bubble; double finalX; bool queued; QString text; bool busy; }`. text는 쪽지/WIP 변경 내용, busy는 대상의 확정된 상태이며 클라이언트가 이벤트만으로 변경을 재현할 수 있게 함께 전달한다.
+- `SessionEvent { QString eventId; QString requestId; QString epoch; quint64 revision; Action action; PeerId actorId; PeerId targetId; QString caption; QString bubble; double finalX; bool queued; QString text; bool busy; }`. text는 쪽지/WIP 변경 내용 또는 busy 중 쌓인 선물의 실제 inbox 설명, busy는 대상의 확정된 상태이며 클라이언트가 이벤트만으로 변경을 재현할 수 있게 함께 전달한다. queued 선물·쪽지의 InboxItem은 eventId/action/text로 구성하면 snapshot과 같은 내용이 된다.
 - `Transition { SessionState state; std::optional<SessionEvent> event; QString error; }`.
 - `InboxItem { QString eventId; Action kind; QString text; }`; 쪽지와 busy 중 선물은 표시 가능한 항목으로 보존한다.
 - `encodeCommand(const Command&) -> QByteArray`, `decodeCommand(const QByteArray&) -> std::optional<Command>`, `encodeEvent(const SessionEvent&) -> QByteArray`, `decodeEvent(const QByteArray&) -> std::optional<SessionEvent>`, `encodeSnapshot(const SessionState&) -> QByteArray`, `decodeSnapshot(const QByteArray&) -> std::optional<SessionState>`.
@@ -130,11 +130,11 @@ Task 2 구현 결정: 상태가 가득 차면 기존 항목을 버리지 않고 
 
 **Interfaces:** 앞 절의 모든 공통 타입과 codec, applyCommand, CopyCatalog를 제공한다. UI나 서버 저장소에 의존하지 않는 라이브러리로 만든다.
 
-- [ ] **1. 실패 테스트를 작성한다.** `busyRejectsPrankWithoutQueue`, `busyQueuesGiftAndNoteSilently`, `unbusyDoesNotAutoOpen`, `offlineRejectsNote`, `onlyOwnerChangesWip`, `ropeAndLurePinDestination`, `otherActionKeepsPinnedPosition`, `copyAvoidsImmediateRepeat`, `sameEventHasSameBubble`, `unicodeLimitsAndPlainText`, `invalidFrameIsRejected`를 만든다. 핵심 단언은 error/queued 값, inbox 크기, 두 번 적용한 위치 불변, WIP 80/81 및 쪽지 120/121 code point의 경계다.
-- [ ] **2. `cmake --build build`와 `ctest --test-dir build -R 'protocol|session' --output-on-failure`를 실행해 미구현으로 실패하는지 확인한다.**
-- [ ] **3. 타입·codec·reducer를 구현한다.** actor와 두 멤버의 reachable을 검증하고, 상태 변경은 revision 순서로 한다. 이동 목적지는 상대와 화면 경계 안의 가까운 자리로 확정하고 pinned=true로 남긴다. busy 이후 들어온 장난은 event 없이 거부한다. 랜덤 선택 결과인 caption과 bubble은 이벤트에 담아 송신한다. ko.json에는 승인한 커피·에너지음료 말풍선 각각 5개를 그대로 포함한다. 최대 프레임 16KiB, 알려진 action만 허용하고 NaN·범위 밖 좌표·잘못된 타입을 거부한다.
-- [ ] **4. 같은 테스트 명령으로 전부 통과시키고, busy 전후 두 명령의 순서를 바꿔 실행한 테스트도 통과시킨다.**
-- [ ] **5. `git add core tests CMakeLists.txt desktop/src/OverlayWindow.*` 후 `git commit -m "feat: define shared session rules and dialogue events"`한다.**
+- [x] **1. 실패 테스트를 작성한다.** `busyRejectsPrankWithoutQueue`, `busyQueuesGiftAndNoteSilently`, `unbusyDoesNotAutoOpen`, `offlineRejectsNote`, `onlyOwnerChangesWip`, `ropeAndLurePinDestination`, `otherActionKeepsPinnedPosition`, `copyAvoidsImmediateRepeat`, `sameEventHasSameBubble`, `unicodeLimitsAndPlainText`, `invalidFrameIsRejected`를 만든다. 핵심 단언은 error/queued 값, inbox 크기, 두 번 적용한 위치 불변, WIP 80/81 및 쪽지 120/121 code point의 경계다.
+- [x] **2. `cmake --build build`와 `ctest --test-dir build -R 'protocol|session' --output-on-failure`를 실행해 미구현으로 실패하는지 확인한다.**
+- [x] **3. 타입·codec·reducer를 구현한다.** actor와 두 멤버의 reachable을 검증하고, 상태 변경은 revision 순서로 한다. 이동 목적지는 상대와 화면 경계 안의 가까운 자리로 확정하고 pinned=true로 남긴다. busy 이후 들어온 장난은 event 없이 거부한다. 랜덤 선택 결과인 caption과 bubble은 이벤트에 담아 송신한다. ko.json에는 승인한 커피·에너지음료 말풍선 각각 5개를 그대로 포함한다. 최대 프레임 16KiB, 알려진 action만 허용하고 NaN·범위 밖 좌표·잘못된 타입을 거부한다.
+- [x] **4. 같은 테스트 명령으로 전부 통과시키고, busy 전후 두 명령의 순서를 바꿔 실행한 테스트도 통과시킨다.**
+- [x] **5. `git add core tests CMakeLists.txt desktop/src/OverlayWindow.*` 후 `git commit -m "feat: define shared session rules and dialogue events"`한다.**
 
 ### Task 3: 서로 동의한 일대일 페어와 영속 인증
 

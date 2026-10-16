@@ -96,6 +96,7 @@ bool validEvent(const SessionEvent& event)
                          || !event.bubble.isEmpty())) return false;
     if (event.action == Action::Note) return textFits(event.text, 120, false);
     if (event.action == Action::SetWip) return textFits(event.text, 80, true);
+    if (gift(event.action) && event.queued) return textFits(event.text, 512, false);
     return event.text.isEmpty();
 }
 }

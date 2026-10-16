@@ -64,6 +64,7 @@ Transition applyCommand(const SessionState& state, const PeerId& actor, const Co
         const auto text = note ? event.text : command.action == Action::Coffee
             ? QStringLiteral("친구가 커피 한 잔을 두고 갔어요.") : QStringLiteral("친구가 에너지음료를 두고 갔어요.");
         recipient.inbox.push_back({event.eventId, command.action, text});
+        event.text = text;
     }
     // Keep snapshots deliverable rather than silently losing a received item on reconnect.
     const auto snapshot = encodeSnapshot(next);
