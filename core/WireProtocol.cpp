@@ -7,7 +7,7 @@ namespace {
 bool valid(const WireFrame& f)
 {
     static const QSet<QString> operations = {"device.register", "auth", "invite.create",
-        "invite.join", "invite.approve", "pair.revoke", "session.command", "session.snapshot",
+        "invite.join", "invite.approve", "pair.revoke", "session.command", "session.snapshot", "session.heartbeat",
         "result", "error", "session.event", "session.notice", "join.requested"};
     if (!operations.contains(f.op)) return false;
     const bool push = f.op == "session.event" || f.op == "session.notice" || f.op == "join.requested";

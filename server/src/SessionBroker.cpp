@@ -315,7 +315,9 @@ struct SessionBroker::Impl {
             connections[socket].lastPong=connections[socket].lastPing=now();
             active[*peer]=socket; body={{"peerId",*peer}}; attachAfter=true;
         } else if (actor.isEmpty()) error="unauthenticated";
-        else if (f.op=="invite.create") {
+        else if (f.op=="session.heartbeat") {
+            if (!keys(b,{})) error="invalid";
+        } else if (f.op=="invite.create") {
             if (!keys(b,{})) error="invalid";
             else if (!ipPermit(connections[socket].ip)) error="rate_limited";
             else {

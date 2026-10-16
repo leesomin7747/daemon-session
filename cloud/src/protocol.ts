@@ -19,7 +19,7 @@ export function frame(data:unknown):Frame|null {
  if(typeof data!=='string'||data.length===0||data.length>MAX_FRAME||bytes(data)>MAX_FRAME)return null;
  let value:unknown;try{value=JSON.parse(data);}catch{return null;}
  if(!record(value)||!keys(value,['v','op','requestId','body'])||value.v!==1||typeof value.op!=='string'||!record(value.body)||typeof value.requestId!=='string')return null;
- const ops=['device.register','auth','invite.create','invite.join','invite.approve','pair.revoke','session.command','session.snapshot','result','error','session.event','session.notice','join.requested'];
+ const ops=['device.register','auth','invite.create','invite.join','invite.approve','pair.revoke','session.command','session.snapshot','session.heartbeat','result','error','session.event','session.notice','join.requested'];
  if(!ops.includes(value.op))return null;
  const push=['session.event','session.notice','join.requested'].includes(value.op)||(value.op==='session.snapshot'&&value.requestId==='');
  if(push?value.requestId!=='':!id(value.requestId))return null;

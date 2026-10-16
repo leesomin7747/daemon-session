@@ -23,7 +23,9 @@ npm run dev
 
 메모/쪽지/선물·장면·중복 캐시는 메모리에만 둔다. 배포/런타임 재시작으로 일시 상태가 초기화될 수 있고 영속 인증과 페어는 유지한다. 모든 peer가 떠난 후15초 유예가 지나면 메모리 세션을 정리한다. offline 우편·자동 재발송·지속 채팅 기록은 없다.
 
-메모리를 idle hibernation이 지우지 않도록 표준 WebSocket API를 사용한다. 연결 중 DO duration을 소비한다. 외부 WebSocket의 RFC ping/pong은 플랫폼이 처리하며 Qt Client가 heartbeat를 검증한다. 메시지16KiB, 소켓64, 대기 요청(소켓32/office256), 재시도 캐시256, 기기 등록4096, IP 예산1024 및 기기별 요청 한도를 둔다. 플랫폼 WebSocket 송신 버퍼를 사용하는 것이며 C++의64KiB 버퍼 검사를 그대로 제공한다고 주장하지 않는다.
+메모리를 idle hibernation이 지우지 않도록 표준 WebSocket API를 사용한다. 연결 중 DO duration을 소비한다. 외부 WebSocket의 RFC ping/pong은 플랫폼이 처리한다. 추가로 Qt Client가10초마다 빈 `session.heartbeat` 요청/응답을 확인하며, Worker는 인증된 마지막 요청으로부터30초 활동 기한을 소켓 타이머 및 명령 처리 직전에 검사한다. 기한이 지난 상대에게는 쪽지/선물을 추가하지 않는다. 응답이 없으면 Client도 재접속하며 지난 행동은 재발송하지 않는다. 메시지16KiB, 소켓64, 대기 요청(소켓32/office256), 재시도 캐시256개(문자열+항목 예산은 캐시별512KiB/office 전체16MiB), 기기 등록4096, IP 예산1024 및 기기별 요청 한도를 둔다. 캐시 예산이 부족하면 새 작업의 부작용을 적용하기 전에 `capacity`를 응답하고 해당 소켓을 종료한다. 이미 수락한 최근256개 결과를 메모리 압박 때문에 먼저 지우거나 재실행하지 않는다. 소켓 종료/세션 정리/256개 FIFO 교체 시 예산을 반환한다. heartbeat는 부작용이 없어 응답을 캐시하지 않는다.
+
+플랫폼 WebSocket 송신 버퍼를 사용하는 것이며 C++의64KiB 버퍼 검사를 그대로 제공한다고 주장하지 않는다.
 
 수신 메모·token·초대 코드의 console 로그를 쓰지 않는다. Worker observability/preview URL은 껐다. 일반 HTTP에는 `/healthz`의 생존 응답만 제공하고, root WebSocket은 GET/정확한 path/빈 query/Origin 없음만 허용한다. `/healthz`는 Worker 접근 확인이며 SQLite/승인 전체의 검증은 실제 연결 시나리오로 한다.
 
@@ -32,7 +34,7 @@ npm run dev
 [Cloudflare 공식 가격](https://developers.cloudflare.com/durable-objects/platform/pricing/) 기준 Free의 SQLite DO는 일100,000 요청,13,000GB-s duration,100,000 rows written,5million rows read 및 계정 저장 한도를 제공한다. 같은 DO 하나의 연결을24시간 유지하면 공식128MB 환산으로 약11,060GB-s다. 같은 계정의 다른 DO 사용도 함께 계산하며 무료 한도를 초과하면 오류가 날 수 있다. Paid 업그레이드·유료 Containers·R2·추가 도메인을 생성하지 않는다. 무제한 무료나 SLA를 보장하지 않는다.
 
 ```sh
-npx wrangler login
+npx wrangler login --device --scopes account:read user:read workers:write workers_scripts:write
 npx wrangler whoami
 npm run build
 npm run deploy

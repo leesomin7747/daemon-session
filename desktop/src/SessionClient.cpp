@@ -65,7 +65,7 @@ struct SessionClient::Impl {
             if(!authenticated || !socket) return;
             const auto now=clock.elapsed();
             if(now-lastPong>=options.heartbeatTimeoutMs) {socket->abort(); return;}
-            if(now-lastPing>=options.heartbeatMs) {lastPing=now; ping=uuid().toLatin1(); socket->ping(ping);}
+            if(now-lastPing>=options.heartbeatMs) {lastPing=now; ping=uuid().toLatin1(); socket->ping(ping); submit("session.heartbeat",{},uuid());}
         });
         QObject::connect(store,&CredentialStore::loaded,owner,[this](DeviceCredential value,bool found){
             if(!loading || !wanted) return;
@@ -164,7 +164,7 @@ struct SessionClient::Impl {
         QObject::connect(deadline,&QTimer::timeout,owner,[this,request,version]{
             if(generation!=version) return;
             const auto p=take(request); if(!p) return;
-            if(p->op=="auth" || p->op=="device.register") {if(socket) socket->abort(); return;}
+            if(p->op=="auth" || p->op=="device.register" || p->op=="session.heartbeat") {if(socket) socket->abort(); return;}
             if(p->op=="session.snapshot") recovering=false;
             if(p->op=="pair.revoke") {forgetting=false; wanted=false; destroySocket(); authenticated=haveSnapshot=false; setState("offline");}
             emit owner->error(request,"timeout");
@@ -200,6 +200,14 @@ struct SessionClient::Impl {
         if(!pending.contains(frame.requestId)) {if(!retired.contains(frame.requestId)) fatal("protocol"); return;}
         const auto p=take(frame.requestId); const auto& body=frame.body;
         const auto bad=[&]{emit owner->error(frame.requestId,"protocol"); fatal("protocol");};
+        if(p->op=="session.heartbeat") {
+            if(frame.op=="error") {
+                if(!keys(body,{"code"}) || !body["code"].isString() || body["code"].toString().size()>64) {bad(); return;}
+                if(socket) socket->abort(); return;
+            }
+            if(!body.isEmpty()) {bad(); return;}
+            return;
+        }
         if(frame.op=="error") {
             if(!keys(body,{"code"}) || !body["code"].isString() || body["code"].toString().size()>64) {bad(); return;}
             if(p->op=="session.snapshot") recovering=false;

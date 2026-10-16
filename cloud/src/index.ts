@@ -1,3 +1,4 @@
+import {Cache,ReplyBudget} from './cache';
 import {DurableObject} from 'cloudflare:workers';
 import copy from '../../core/copy/ko.json';
 import {MAX_FRAME,bytes,encode,frame,command,id,keys,transition,type Frame,type State,type Event} from './protocol';
@@ -18,15 +19,11 @@ class Bucket {
  tokens:number;at=Date.now();constructor(readonly capacity=20,readonly perSecond=10){this.tokens=capacity;}
  take(){const now=Date.now();this.tokens=Math.min(this.capacity,this.tokens+Math.max(0,now-this.at)*this.perSecond/1000);this.at=Math.max(now,this.at);if(this.tokens<1)return false;this.tokens--;return true;}
 }
-class Cache {
- values=new Map<string,{digest:string;reply:string}>();
- put(key:string,value:{digest:string;reply:string}){this.values.set(key,value);while(this.values.size>256)this.values.delete(this.values.keys().next().value!);}
-}
-interface Connection {peer:string;ip:string;registered:boolean;controls:Cache;frames:Bucket;queued:number;deadline:ReturnType<typeof setTimeout>}
+interface Connection {peer:string;ip:string;registered:boolean;controls:Cache;frames:Bucket;queued:number;leaseUntil:number;deadline:ReturnType<typeof setTimeout>}
 interface Room {state:State;commands:Cache;copy:Map<string,string>;departures:Map<string,ReturnType<typeof setTimeout>>}
 type Invite={code_hash:string;inviter_id:string;expires_at:number;request_id:string|null;applicant_id:string|null};
 export class Office extends DurableObject<Env> {
- private connections=new Map<WebSocket,Connection>();private active=new Map<string,WebSocket>();private rooms=new Map<string,Room>();
+ private replyBudget=new ReplyBudget();private connections=new Map<WebSocket,Connection>();private active=new Map<string,WebSocket>();private rooms=new Map<string,Room>();
  private rates=new Map<string,Bucket>();private ips=new Map<string,{at:number;used:number}>();private queued=0;private queue=Promise.resolve();
  constructor(ctx:DurableObjectState,env:Env){
   super(ctx,env);
@@ -49,7 +46,7 @@ export class Office extends DurableObject<Env> {
  private replay(ws:WebSocket,f:Frame,hash:string,cache:Cache,key:string){const cached=cache.values.get(key);if(!cached)return false;this.send(ws,cached.digest===hash?cached.reply:this.reply(f,'request_conflict'));return true;}
  private bump(state:State){if(BigInt(state.revision)>=18446744073709551615n)return false;state.revision=(BigInt(state.revision)+1n).toString();return true;}
  private drop(ws:WebSocket){
-  const c=this.connections.get(ws);if(!c)return;this.connections.delete(ws);clearTimeout(c.deadline);
+  const c=this.connections.get(ws);if(!c)return;this.connections.delete(ws);clearTimeout(c.deadline);c.controls.clear();
   if(!c.peer||this.active.get(c.peer)!==ws)return;this.active.delete(c.peer);
   const pair=this.pair(c.peer),room=pair?this.rooms.get(pair):undefined;if(!room||!pair)return;
   const peer=room.state.peers.find(p=>p.id===c.peer)!;if(peer.reachable&&this.bump(room.state)){peer.reachable=false;this.broadcast(pair,'session.snapshot',room.state);}
@@ -58,15 +55,18 @@ export class Office extends DurableObject<Env> {
    room.departures.delete(c.peer);if(this.rooms.get(pair)!==room)return;
    const coffee=room.state.peers.some(p=>p.inbox.some(i=>i.kind==='coffee'));
    this.broadcast(pair,'session.notice',{text:this.pick(room,coffee?'caption.leaveCoffee':'caption.leave')});
-   if(room.departures.size===0&&room.state.peers.every(p=>!p.reachable))this.rooms.delete(pair);
+   if(room.departures.size===0&&room.state.peers.every(p=>!p.reachable)){room.commands.clear();this.rooms.delete(pair);}
   },15000));
  }
+ private expire(){const now=Date.now();for(const [ws,c] of this.connections)if(c.peer&&now>=c.leaseUntil)this.retire(ws,'heartbeat_timeout');}
+ private touch(ws:WebSocket,c:Connection){clearTimeout(c.deadline);c.leaseUntil=Date.now()+30000;c.deadline=setTimeout(()=>this.expire(),30000);}
+ private capacity(ws:WebSocket,f:Frame){this.send(ws,this.reply(f,'capacity'));this.retire(ws,'capacity');}
  private retire(ws:WebSocket,reason:string){this.drop(ws);try{ws.close(1008,reason);}catch{/* already closed */}}
  private attach(peer:string){
   const pending=this.rows<Invite>('SELECT * FROM invites WHERE inviter_id=? AND request_id IS NOT NULL AND expires_at>?',peer,Date.now())[0];const own=this.active.get(peer);
   if(pending&&own)this.push(own,'join.requested',{joinRequestId:pending.request_id,peerId:pending.applicant_id});
   const pair=this.pair(peer);if(!pair)return;let room=this.rooms.get(pair);
-  if(!room){const peers=this.members(pair);if(peers.length!==2)throw Error('storage');room={state:{epoch:uuid(),revision:'0',peers:peers.map((id,i)=>({id,reachable:false,busy:false,wip:'',x:i===0?.25:.75,pinned:false,inbox:[]})).sort((a,b)=>a.id.localeCompare(b.id))},commands:new Cache(),copy:new Map(),departures:new Map()};this.rooms.set(pair,room);}
+  if(!room){const peers=this.members(pair);if(peers.length!==2)throw Error('storage');room={state:{epoch:uuid(),revision:'0',peers:peers.map((id,i)=>({id,reachable:false,busy:false,wip:'',x:i===0?.25:.75,pinned:false,inbox:[]})).sort((a,b)=>a.id.localeCompare(b.id))},commands:new Cache(this.replyBudget),copy:new Map(),departures:new Map()};this.rooms.set(pair,room);}
   let changed=false;for(const p of room.state.peers){if(this.active.has(p.id)&&!p.reachable&&this.bump(room.state)){p.reachable=true;changed=true;const timer=room.departures.get(p.id);if(timer)clearTimeout(timer);room.departures.delete(p.id);}}
   this.broadcast(pair,'session.snapshot',room.state);
   if(changed&&room.state.peers.every(p=>p.reachable))this.broadcast(pair,'session.notice',{text:this.pick(room,'caption.join')});
@@ -74,6 +74,7 @@ export class Office extends DurableObject<Env> {
  private act(ws:WebSocket,c:Connection,f:Frame,hash:string){
   const pair=this.pair(c.peer),room=pair?this.rooms.get(pair):undefined;if(!pair||!room){this.send(ws,this.reply(f,'not_paired'));return;}
   const key=c.peer+':'+f.requestId;if(this.replay(ws,f,hash,room.commands,key))return;
+  if(!room.commands.canPut(key,512)){this.capacity(ws,f);return;}
   const cmd=command(f.body,f.requestId);let error:string|undefined;let event:Event|undefined;
   if(!this.rates.get(c.peer)?.take())error='rate_limited';else if(!cmd)error='invalid';else{
    const target=room.state.peers.find(p=>p.id===cmd.targetId),add=cmd.action==='note'||(['coffee','energy'].includes(cmd.action)&&target?.busy);
@@ -86,9 +87,12 @@ export class Office extends DurableObject<Env> {
   let hash:string,capability:string|undefined,newSecret:string|undefined;
   try{hash=await digest(encode(stable(f)));if(f.op==='auth'&&token(f.body.token))capability=await digest(f.body.token);if(f.op==='invite.join'&&token(f.body.invite))capability=await digest(f.body.invite);if(f.op==='device.register'||f.op==='invite.create'){newSecret=secret();capability=await digest(newSecret);}}
   catch{this.retire(ws,'invalid');return;}
-  if(this.connections.get(ws)!==c)return;
+  this.expire();if(this.connections.get(ws)!==c)return;
+  if(c.peer)this.touch(ws,c);
   if(f.op==='session.command'&&c.peer){this.act(ws,c,f,hash);return;}
+  if(f.op==='session.heartbeat'){this.send(ws,this.reply(f,!c.peer?'unauthenticated':!keys(f.body,[])?'invalid':!this.rates.get(c.peer)?.take()?'rate_limited':undefined));return;}
   if(this.replay(ws,f,hash,c.controls,f.requestId))return;
+  if(!c.controls.canPut(f.requestId,MAX_FRAME)){this.capacity(ws,f);return;}
   if(c.peer&&!this.rates.get(c.peer)?.take()){const reply=this.reply(f,'rate_limited');c.controls.put(f.requestId,{digest:hash,reply});this.send(ws,reply);return;}
   if(c.peer&&['invite.create','invite.join','invite.approve'].includes(f.op))this.ctx.storage.sql.exec('DELETE FROM invites WHERE expires_at<=?',Date.now());
   let error:string|undefined,body:unknown={},attach=false,revoke:string[]=[];
@@ -98,7 +102,7 @@ export class Office extends DurableObject<Env> {
    if(c.peer||!keys(f.body,['token'])||!capability){this.retire(ws,'unauthenticated');return;}
    const peer=this.rows<{id:string}>('SELECT id FROM devices WHERE token_hash=?',capability)[0]?.id;
    if(!peer){this.retire(ws,'unauthenticated');return;}
-   const old=this.active.get(peer);if(old)this.retire(old,'superseded');c.peer=peer;clearTimeout(c.deadline);this.active.set(peer,ws);if(!this.rates.has(peer))this.rates.set(peer,new Bucket());body={peerId:peer};attach=true;
+   const old=this.active.get(peer);if(old)this.retire(old,'superseded');c.peer=peer;this.touch(ws,c);this.active.set(peer,ws);if(!this.rates.has(peer))this.rates.set(peer,new Bucket());body={peerId:peer};attach=true;
   }else if(!c.peer)error='unauthenticated';
   else if(f.op==='invite.create'){
    if(!keys(f.body,[]))error='invalid';else if(!this.permit(c.ip))error='rate_limited';else if(this.pair(c.peer))error='refused';else{
@@ -122,7 +126,7 @@ export class Office extends DurableObject<Env> {
    if(!keys(f.body,[]))error='invalid';else{
     const pair=this.pair(c.peer);revoke=pair?this.members(pair):[c.peer];
     this.ctx.storage.transactionSync(()=>{for(const peer of revoke)this.ctx.storage.sql.exec('DELETE FROM invites WHERE inviter_id=? OR applicant_id=?',peer,peer);if(pair)this.ctx.storage.sql.exec('DELETE FROM pairs WHERE id=?',pair);});
-    if(pair){const room=this.rooms.get(pair);if(room)for(const timer of room.departures.values())clearTimeout(timer);this.rooms.delete(pair);}
+    if(pair){const room=this.rooms.get(pair);if(room){for(const timer of room.departures.values())clearTimeout(timer);room.commands.clear();}this.rooms.delete(pair);}
    }
   }else if(f.op==='session.snapshot'){
    if(!keys(f.body,[]))error='invalid';else{const pair=this.pair(c.peer),room=pair?this.rooms.get(pair):undefined;if(!room)error='not_paired';else body=room.state;}
@@ -135,7 +139,7 @@ export class Office extends DurableObject<Env> {
   for(const [peer,bucket] of this.rates)if(!this.active.has(peer)&&Date.now()-bucket.at>=60000)this.rates.delete(peer);
   if(this.connections.size>=64)return new Response('Connection capacity',{status:503});
   const pair=new WebSocketPair(),client=pair[0],ws=pair[1];ws.accept();
-  const connection:Connection={peer:'',ip:request.headers.get('CF-Connecting-IP')??'local',registered:false,controls:new Cache(),frames:new Bucket(40,20),queued:0,deadline:setTimeout(()=>this.retire(ws,'auth_timeout'),5000)};this.connections.set(ws,connection);
+  const connection:Connection={peer:'',ip:request.headers.get('CF-Connecting-IP')??'local',registered:false,controls:new Cache(this.replyBudget),frames:new Bucket(40,20),queued:0,leaseUntil:0,deadline:setTimeout(()=>this.retire(ws,'auth_timeout'),5000)};this.connections.set(ws,connection);
   ws.addEventListener('close',()=>this.drop(ws));ws.addEventListener('error',()=>this.drop(ws));
   ws.addEventListener('message',event=>{
    if(!this.connections.has(ws))return;const f=frame(event.data);

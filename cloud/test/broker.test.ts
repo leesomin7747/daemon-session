@@ -8,6 +8,32 @@ async function peer(mf:Miniflare){const response=await mf.dispatchFetch('http://
 async function pair(mf:Miniflare){const a=await peer(mf),b=await peer(mf);const ca=await a.auth(),cb=await b.auth();const code=(await a.result(a.send('invite.create'))).body.invite;const request=(await b.result(b.send('invite.join',{invite:code}))).body.joinRequestId;assert.ok(!a.messages.some(m=>m.op==='session.snapshot'));await a.result(a.send('invite.approve',{joinRequestId:request}));await until(()=>a.messages.some(m=>m.op==='session.snapshot')&&b.messages.some(m=>m.op==='session.snapshot'));return {a,b,ca,cb};}
 function command(peer:any,target:string,action:string,text='',busy=false,id=crypto.randomUUID()){peer.send('session.command',{requestId:id,action,targetId:target,text,busy},id);return id;}
 test('handshake requires exact path, no Origin/query and WebSocket upgrade',async()=>{const mf=server();try{assert.equal((await mf.dispatchFetch('http://office/')).status,426);assert.equal((await mf.dispatchFetch('http://office/?token=no',{headers:{Upgrade:'websocket'}})).status,400);assert.equal((await mf.dispatchFetch('http://office/',{headers:{Upgrade:'websocket',Origin:'https://other'}})).status,403);}finally{await mf.dispose();}});
+test('heartbeat requires authentication and an empty body without producing scene events',async()=>{const mf=server();try{
+ const a=await peer(mf);assert.equal((await a.result(a.send('session.heartbeat'))).body.code,'unauthenticated');
+ await a.auth();assert.equal((await a.result(a.send('session.heartbeat',{unexpected:true}))).body.code,'invalid');
+ assert.deepEqual((await a.result(a.send('session.heartbeat'))).body,{});
+ assert.equal(a.messages.filter(m=>m.op==='session.event').length,0);
+ }finally{await mf.dispose();}});
+test('large snapshots retire a full control cache; accepted command replay remains exact after reconnect',async()=>{const mf=server();try{
+ const {a,b,ca,cb}=await pair(mf);let last='';
+ for(let n=0;n<76;n++){last=command(a,cb.id,'note','x'.repeat(120));assert.equal((await a.result(last)).op,'result');await new Promise(r=>setTimeout(r,120));}
+ const receipt=a.messages.find(m=>m.requestId===last);let full=false;
+ for(let n=0;n<30;n++){const r=await a.result(a.send('session.snapshot'));if(r.body.code==='capacity'){full=true;break;}assert.equal(r.op,'result');await new Promise(r=>setTimeout(r,120));}
+ assert.ok(full);await until(()=>a.closed);
+ const back=await peer(mf);await back.auth(ca.token);command(back,cb.id,'note','x'.repeat(120),false,last);
+ assert.deepEqual(await back.result(last),receipt);
+ assert.equal(b.messages.filter(m=>m.op==='session.event'&&m.body.requestId===last).length,1);
+ }finally{await mf.dispose();}});
+test('a silent recipient expires, cannot receive offline mail, and reconnect does not replay it',async()=>{const mf=server();let keep:ReturnType<typeof setInterval>|undefined;try{
+ const {a,b,cb}=await pair(mf);
+ keep=setInterval(()=>a.send('session.snapshot'),5000);
+ await new Promise(r=>setTimeout(r,31000));
+ const receipt=await a.result(command(a,cb.id,'note','must not become offline mail'));
+ assert.equal(receipt.body.code,'offline');assert.ok(b.closed);
+ const back=await peer(mf);await back.auth(cb.token);await until(()=>back.messages.some(m=>m.op==='session.snapshot'));
+ assert.equal(back.messages.find(m=>m.op==='session.snapshot').body.peers.find((p:any)=>p.id===cb.id).inbox.length,0);
+ assert.equal(back.messages.filter(m=>m.op==='session.event').length,0);
+ }finally{if(keep)clearInterval(keep);await mf.dispose();}});
 test('approval, busy queue, dedup/conflict, offline rejection and revoke use real SQLite/WebSockets',async()=>{const mf=server();try{
  const {a,b,ca,cb}=await pair(mf);let id=command(b,cb.id,'setBusy','',true);assert.equal((await b.result(id)).op,'result');
  id=command(a,cb.id,'rope');assert.equal((await a.result(id)).body.code,'busy');

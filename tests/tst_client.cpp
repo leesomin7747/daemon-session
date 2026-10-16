@@ -52,6 +52,7 @@ struct ScriptServer {
     QVector<WireFrame> received;
     SessionState state=connectedSession();
     bool replySnapshots=true;
+    bool replyHeartbeats=true;
     ScriptServer() {
         state.revision=1;
         server.listen(QHostAddress::LocalHost,0);
@@ -64,6 +65,7 @@ struct ScriptServer {
                 received.append(*frame);
                 if(frame->op=="device.register") respond(current,*frame,{{"peerId","a"},{"token",token(QByteArray(32,'t'))}});
                 if(frame->op=="auth") {respond(current,*frame,{{"peerId","a"}}); pushSnapshot();}
+                if(frame->op=="session.heartbeat" && replyHeartbeats) respond(current,*frame,{});
                 if(frame->op=="session.snapshot" && replySnapshots) respond(current,*frame,object(encodeSnapshot(state)));
             });
         });
@@ -87,6 +89,21 @@ void connectScene(SessionClient& client,SceneModel& model) {
 class ClientTest : public QObject {
     Q_OBJECT
 private slots:
+    void heartbeatIsVisibleToTheApplicationServer() {
+        ScriptServer server; MemorySecrets secrets; CredentialStore store(&secrets);
+        auto options=fastOptions(); options.heartbeatMs=40; options.heartbeatTimeoutMs=500;
+        SessionClient client(&store,options); client.connectTo(server.url());
+        QVERIFY(until([&]{return client.paired();}));
+        QVERIFY(until([&]{return server.count("session.heartbeat")>0;}));
+    }
+    void missingApplicationHeartbeatReconnectsEvenWhenTransportPongs() {
+        ScriptServer server; server.replyHeartbeats=false;
+        MemorySecrets secrets; CredentialStore store(&secrets);
+        auto options=fastOptions(); options.heartbeatMs=40; options.heartbeatTimeoutMs=500; options.requestTimeoutMs=60;
+        SessionClient client(&store,options); QSignalSpy retries(&client,&SessionClient::reconnectScheduled);
+        client.connectTo(server.url()); QVERIFY(until([&]{return client.paired();}));
+        QVERIFY(until([&]{return !retries.isEmpty();}));
+    }
     void initTestCase() {
         qputenv("QT_QUICK_CONTROLS_STYLE","Basic");
 #ifdef Q_OS_MAC

@@ -27,6 +27,7 @@ macOS 26.4 arm64, Qt 6.11.2의 Qt WebSockets/Qt SQL, CMake/Ninja 환경에서 �
 | invite.approve | joinRequestId | pairId |
 | pair.revoke | `{}` | `{}` 후 양쪽 연결 종료 |
 | session.snapshot | `{}` | encodeSnapshot 형식 |
+| session.heartbeat | `{}` | 인증된 요청에 `{}`, 장면 이벤트 없음 |
 | session.command | encodeCommand 형식 | eventId, epoch, revision |
 
 초대 발급자는 `join.requested`의 joinRequestId·peerId를 확인하고 직접 approve한다. 발급자가 잠시 끊겼다면 인증 시 DB에서 아직 유효한 대기 요청을 복구해 알린다. 승인 시점에도 10분 만료를 확인한다. auth는 접속 후 5초 이내에 완료하며 잘못된 자격 증명은 연결을 닫는다. 동일 기기의 새 인증 연결이 기존 소켓을 대체하며, 기존 소켓 권한부터 폐기한다.
@@ -37,7 +38,9 @@ macOS 26.4 arm64, Qt 6.11.2의 Qt WebSockets/Qt SQL, CMake/Ninja 환경에서 �
 
 세션별 최근 256개의 `(epoch, actor, requestId)` 결과를 보관한다. 같은 의미의 JSON 재시도에는 성공 또는 실패 응답만 다시 보내며 지난 이벤트를 다시 방송하지 않는다. 같은 ID의 다른 본문은 request_conflict다. rate_limited·offline 등의 처리 결과도 유지한다. 256개보다 오래된 요청은 캐시 보장 밖이므로 Client는 오래된 요청이나 끊긴 쪽지를 자동 재발송하지 않아야 한다. control 응답 캐시는 해당 소켓 안에서만 유지하며 재접속 인증으로 현재 멤버십·snapshot을 복구한다.
 
-소켓 종료·heartbeat 만료는 즉시 reachable=false다. 10초마다 ping하고 마지막 정상 pong으로부터 30초에 만료한다. 소켓 메시지 처리와 수신 대상의 전달 직전에도 만료를 검사해 타이머 지연이 권한을 연장하지 않는다. 퇴장 안내만 15초 유예하며 그 전에 재접속하면 취소한다. 양쪽 모두 offline이고 유예가 끝나면 메모리 세션과 재시도 캐시를 정리한다. 다음 접속은 새 epoch다. 장난·쪽지 발송 예약은 하지 않는다.
+Cloudflare 이식의 추가 보호: 재시도 문자열/항목 예산은 캐시별512KiB와 office 전체16MiB다. 소진 시 부작용 전에 `capacity` 응답 후 소켓을 종료하며 이미 수락한 최근 요청은 보존한다. heartbeat 요청은 캐시하지 않는다.
+
+소켓 종료·heartbeat 만료는 즉시 reachable=false다. 10초마다 ping하고 마지막 정상 pong으로부터 30초에 만료한다. 소켓 메시지 처리와 수신 대상의 전달 직전에도 만료를 검사해 타이머 지연이 권한을 연장하지 않는다. 퇴장 안내만 15초 유예하며 그 전에 재접속하면 취소한다. 양쪽 모두 offline이고 유예가 끝나면 메모리 세션과 재시도 캐시를 정리한다. 다음 접속은 새 epoch다. 장난·쪽지 발송 예약은 하지 않는다. Cloudflare에서는 RFC pong을 DO가 관측할 수 없어 추가로10초 간격 `session.heartbeat` 요청/응답을 사용한다. Worker는 인증된 마지막 요청의30초 기한을 검사하며 Client는 heartbeat 응답 timeout에도 재접속한다. C++ 서버도 같은 빈 요청을 처리하지만 기존 RFC pong 감시를 유지한다.
 
 기기 인증·페어는 DB에 남고 위치·busy·WIP·받은 항목은 메모리에만 있다. 서버가 재시작하거나 세션이 정리되면 메모리 상태는 끝난다. 이미 받은 항목은 활성 메모리 세션에서 재접속 snapshot으로 복구하고 자기 AckInbox로 비운다. 연결 해제는 DB 멤버십·관련 초대와 메모리 세션을 먼저 제거한 뒤 결과를 내보내고 두 소켓을 닫는다.
 
