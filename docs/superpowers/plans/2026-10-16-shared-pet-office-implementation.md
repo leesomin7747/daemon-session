@@ -158,11 +158,11 @@ Task 3 구현 결정: 승인에도 동일한 10분 만료를 적용하도록 호
 
 Task 4 구현 결정: 평문 WS는 loopback에만 바인딩하며 브라우저 Origin·query credential을 거부한다. 동일 기기의 새 인증 소켓은 기존 권한을 먼저 폐기하고 대체한다. 기기당 초당 10/burst 20은 control을 포함한 새 요청에 적용하고, 별도의 연결 프레임 한도(초당 20/burst 40)는 재시도 flood도 제한한다. 정상 거절 결과도 최근 256개 캐시에 포함하며 같은 ID의 다른 본문은 request_conflict다. 연결 해제·저장소 오류는 권한을 먼저 폐기한 뒤 응답과 close를 내보내고 최대 1초 후 강제 종료한다. 대기 승인은 발급자 재인증 시 DB에서 복구한다. 외부 TLS 배포는 Task 8, 제품 UI·Client는 후속 Task 범위로 유지한다.
 
-- [ ] **1. loopback의 두 실제 QWebSocket으로 실패 테스트를 작성한다.** `controlFramesEstablishMutuallyApprovedPair`, `authTimeoutClosesSocket`, `bothPeersReceiveIdenticalEvent`, `busyRaceRespectsServerOrder`, `disconnectBeforeNoteRejectsWithoutReplay`, `duplicateRequestDoesNotRepeat`, `reconnectGetsSnapshotNotOldAnimation`, `unknownPeerCannotJoin`, `oversizedFrameAndFloodAreBounded`를 검증한다. 동일 이벤트의 eventId/revision/bubble/finalX가 같아야 한다.
-- [ ] **2. `ctest --test-dir build -R broker --output-on-failure`에서 실패를 확인한다.**
-- [ ] **3. Broker를 구현한다.** 위의 control 봉투를 PairStore에 연결하고 actor는 인증 연결에 묶는다. 등록·초대 생성도 IP별 분당 10회로 제한한다. 페어당 하나의 reducer 순서를 사용하며 마지막 256개의 `(epoch, actor, requestId)` 결과를 캐시해 재시도에 같은 응답을 반환한다. applyPresence로 끊긴 소켓의 reachable은 즉시 false, 퇴장 문구는 15초 유예한다. 재접속에 snapshot만 제공하며 offline 명령은 보관하지 않는다. 기기별 초당 10명령 burst 20, inbox 최대 100개에서 명확한 거절 응답, 송신 버퍼 64KiB 초과 시 연결 종료로 메모리를 제한한다. inbox 정리는 AckInbox로 하고 본문을 로그에 남기지 않는다.
-- [ ] **4. heartbeat·유예는 주입 가능한 clock으로 테스트하고 같은 명령으로 전부 통과시킨다.**
-- [ ] **5. `git add server tests` 후 `git commit -m "feat: synchronize two peers through ordered websocket events"`한다.**
+- [x] **1. loopback의 두 실제 QWebSocket으로 실패 테스트를 작성한다.** `controlFramesEstablishMutuallyApprovedPair`, `authTimeoutClosesSocket`, `bothPeersReceiveIdenticalEvent`, `busyRaceRespectsServerOrder`, `disconnectBeforeNoteRejectsWithoutReplay`, `duplicateRequestDoesNotRepeat`, `reconnectGetsSnapshotNotOldAnimation`, `unknownPeerCannotJoin`, `oversizedFrameAndFloodAreBounded`를 검증한다. 동일 이벤트의 eventId/revision/bubble/finalX가 같아야 한다.
+- [x] **2. `ctest --test-dir build -R broker --output-on-failure`에서 실패를 확인한다.**
+- [x] **3. Broker를 구현한다.** 위의 control 봉투를 PairStore에 연결하고 actor는 인증 연결에 묶는다. 등록·초대 생성도 IP별 분당 10회로 제한한다. 페어당 하나의 reducer 순서를 사용하며 마지막 256개의 `(epoch, actor, requestId)` 결과를 캐시해 재시도에 같은 응답을 반환한다. applyPresence로 끊긴 소켓의 reachable은 즉시 false, 퇴장 문구는 15초 유예한다. 재접속에 snapshot만 제공하며 offline 명령은 보관하지 않는다. 기기별 초당 10명령 burst 20, inbox 최대 100개에서 명확한 거절 응답, 송신 버퍼 64KiB 초과 시 연결 종료로 메모리를 제한한다. inbox 정리는 AckInbox로 하고 본문을 로그에 남기지 않는다.
+- [x] **4. heartbeat·유예는 주입 가능한 clock으로 테스트하고 같은 명령으로 전부 통과시킨다.**
+- [x] **5. `git add server tests` 후 `git commit -m "feat: synchronize two peers through ordered websocket events"`한다.**
 
 ### Task 5: 승인한 펫 장면과 짧은 행동 연출
 

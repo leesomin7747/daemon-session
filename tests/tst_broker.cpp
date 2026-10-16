@@ -128,6 +128,7 @@ private slots:
     void rateLimitedCommandRetryKeepsOriginalFailure();
     void pendingJoinNotifiesReconnectedIssuer();
     void storageFailureReturnsSafeErrorAndCloses();
+    void expiredRecipientRejectsBeforeSweepAndRetry();
 };
 
 void BrokerTest::strictSharedEnvelope()
@@ -514,6 +515,22 @@ void BrokerTest::storageFailureReturnsSafeErrorAndCloses()
     c.send("invite.create","fail");
     QCOMPARE(c.wait("error","fail")["body"].toObject(),QJsonObject({{"code","storage_unavailable"}}));
     QVERIFY(until([&]{return c.ws.state()==QAbstractSocket::UnconnectedState;}));
+}
+void BrokerTest::expiredRecipientRejectsBeforeSweepAndRetry()
+{
+    Fixture f; QVERIFY(f.pair());
+    f.ms=1000; Client fresh; QVERIFY(f.authenticate(fresh,f.a));
+    // Allow a timer tick at 1s (no ping is due), then move the clock just before delivery.
+    QTest::qWait(110); fresh.frames.clear();
+    f.ms=30000; fresh.command("deadline","note",f.b.id,"must stay failed");
+    const auto failed=fresh.wait("error","deadline");
+    QCOMPARE(failed["body"].toObject()["code"].toString(),QString("offline"));
+    QCOMPARE(f.cb.count("session.event"),0);
+    Client back; QVERIFY(f.authenticate(back,f.b)); QVERIFY(!back.wait("session.snapshot").isEmpty());
+    fresh.frames.clear(); fresh.command("deadline","note",f.b.id,"must stay failed");
+    QCOMPARE(fresh.wait("error","deadline"),failed);
+    QCOMPARE(back.count("session.event"),0);
+    QCOMPARE(peer(back.snapshot("s"),f.b.id)["inbox"].toArray().size(),0);
 }
 QTEST_GUILESS_MAIN(BrokerTest)
 #include "tst_broker.moc"

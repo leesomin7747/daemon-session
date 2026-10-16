@@ -131,7 +131,10 @@ struct SessionBroker::Impl {
     }
     bool writable(QWebSocket* socket, qsizetype bytes)
     {
-        return connections.contains(socket) && socket->state()==QAbstractSocket::ConnectedState
+        const auto it=connections.constFind(socket);
+        if (it==connections.cend()) return false;
+        const bool alive=it->peer.isEmpty()?now()-it->created<5000:now()-it->lastPong<30000;
+        return alive && socket->state()==QAbstractSocket::ConnectedState
             && socket->bytesToWrite()+bytes+16<=64*1024;
     }
     void send(QWebSocket* socket, const QByteArray& bytes)
