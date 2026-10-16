@@ -50,6 +50,9 @@ Item {
         y: scene.height - height - 18
         width: 72; height: 72; radius: 18; color: "#bcb5ff"
         onXChanged: scene.syncRegions()
+        onYChanged: scene.syncRegions()
+        onWidthChanged: scene.syncRegions()
+        onHeightChanged: scene.syncRegions()
         Text { anchors.centerIn: parent; text: "•ᴗ•"; font.pixelSize: 26; color: "#26223b" }
         MouseArea {
             anchors.fill: parent
@@ -66,6 +69,9 @@ Item {
         y: scene.height - height - 18
         width: 72; height: 72; radius: 18; color: "#a9d4bf"
         onXChanged: scene.syncRegions()
+        onYChanged: scene.syncRegions()
+        onWidthChanged: scene.syncRegions()
+        onHeightChanged: scene.syncRegions()
         Text { anchors.centerIn: parent; text: "˘ᴗ˘"; font.pixelSize: 26; color: "#17372c" }
         MouseArea { anchors.fill: parent; onClicked: scene.ping() }
         SequentialAnimation {
@@ -79,6 +85,10 @@ Item {
         x: Math.max(0, Math.min(pet.x, scene.width - width)); y: 0
         width: Math.min(340, scene.width); height: 84
         visible: scene.editorOpen; radius: 8; color: "#eeedf5"
+        onXChanged: scene.syncRegions()
+        onYChanged: scene.syncRegions()
+        onWidthChanged: scene.syncRegions()
+        onHeightChanged: scene.syncRegions()
         TextField {
             id: input; x: 8; y: 8; width: parent.width - 88; height: 40
             placeholderText: "WIP · 한글 / emoji"

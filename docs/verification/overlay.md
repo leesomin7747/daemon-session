@@ -25,13 +25,26 @@ Task 1 진행 중. 양쪽 실제 GUI 검증을 마치기 전 Qt 기반 지원을
 | 자동 ping 중 뒤 작업창 포커스 | ping 증가 중 `focus-before-after` 입력 유지 | 미실행 |
 | WIP 한글·이모지 | `알고리즘 과제 ☕` 입력 및 저장 확인 | 미실행 |
 | WIP 닫기 후 앱 내부 포커스 복귀 | 수정 후 AX에서 작업창 입력 포커스 확인; Cocoa 회귀 테스트 통과 | 미실행 |
-| 다른 앱 위 표시 / 그 앱 타이핑 유지 | 미검증 | 미실행 |
+| 다른 앱 위 표시 | 미검증 | 미실행 |
+| 다른 앱 타이핑 유지 | 자동 ping을 켠 상태에서 TextEdit의 `external-before` 뒤에 `-after` 입력, 입력 영역 포커스 유지 확인. 앱 전환 전후 광범위한 검사는 남음 | 미실행 |
 | 실제 배율에서 가장자리 클릭 | DPR 2 기본 동작 확인; 체계적인 가장자리 검사 남음 | 125% 미실행 |
 | Dock/패널 및 작업 영역 변경 | 미검증 | 미실행 |
 
-남은 macOS 화면 검증 중 Mac이 잠겨 CUA가 진행을 거부했고 사용자가 직접 해제했다. 재개 후 다른 앱 연결에서도 CUA 시간 초과가 발생했다. 펫의 화면 캡처만으로 실제 클릭 영역 일치를 단정하지 않고 해당 항목은 보류한다. 검증 완료 캡처는 아직 보존하지 못했으므로 추후 실제 결과와 함께 추가한다.
+남은 macOS 화면 검증 중 Mac이 잠겨 CUA가 진행을 거부했고 사용자가 직접 해제했다. 재개 후 다른 앱 연결에서도 CUA 시간 초과가 발생했으나 이후 TextEdit 연결은 회복됐다. 펫의 화면 캡처만으로 실제 클릭 영역 일치를 단정하지 않고 해당 항목은 보류한다.
 
-자동 테스트는 7개 동작을 기본 배율과 `QT_SCALE_FACTOR=1.25`로 각각 실행한다. 이동 전후 영역 교체, 소수 좌표 경계, 잘못된 영역/창 밖 영역 무시, 빈 영역 통과, 편집에 따른 포커스 허용, 정규화 위치의 경계, 편집 종료 시 이전 창 복귀를 확인한다. QML 두 창의 로드 및 종료 신호 연결 스모크 테스트도 실행해 CTest 3/3 통과. 별도로 `QT_QPA_PLATFORM=cocoa ./build/tests/tst_overlaygeometry editorReturnsFocusToPreviousWindow`에서 실제 Cocoa 포커스 복귀 통과. 이 결과는 네이티브 입력 영역 전체의 통과 판정이 아니다.
+보존한 캡처: [네이티브 펫·WIP 창](evidence/daemon-overlay-native.png), [검증 작업창](evidence/daemon-overlay-workbench.png), [외부 앱 입력](evidence/daemon-overlay-external-focus.png). 개별 창 캡처이며, 투명 영역은 캡처 도구에서 흰 배경으로 표시된다. 다른 앱과 합성된 전체 바탕화면의 투명도·위아래 순서를 증명하는 캡처는 아니다.
+
+자동 테스트는 8개 동작을 기본 배율과 `QT_SCALE_FACTOR=1.25`로 각각 실행한다. 이동 전후 영역 교체, 소수 좌표 경계, 잘못된 영역/창 밖 영역 무시, 빈 영역 통과, 편집에 따른 포커스 허용, 정규화 위치의 경계, 편집 종료 시 이전 창 복귀, 열린 편집창으로 재진입할 때 포커스 재획득을 확인한다. 실제 Probe.qml을 로드해 WIP를 연 채 펫을 이동했을 때 편집창의 새 영역만 입력을 받는지도 검사한다. QML 로드·종료 스모크 테스트와 함께 CTest 4/4 통과.
+
+별도로 `QT_QPA_PLATFORM=cocoa ./build/tests/tst_overlaygeometry editorReturnsFocusToPreviousWindow explicitEditCanRegainFocus`에서 실제 Cocoa 포커스 두 경우가 통과했다. OS 입력 서비스의 CFMessagePortSendRequest 경고가 있었으나 두 포커스 assertion은 통과했다. 이 결과는 네이티브 입력 영역 전체의 통과 판정이 아니다.
+
+## 코드 리뷰와 남은 확인
+
+독립 리뷰가 재현한 “펫 이동 후 WIP 클릭 영역이 옛 자리에 남는 문제”와 추가로 확인한 “이미 열린 편집창 재진입 시 활성화되지 않는 문제”는 각각 실패하는 테스트를 먼저 실행한 뒤 수정했다. 중요한 미해결 코드 리뷰 항목은 없다.
+
+경미한 보류 항목: KWin은 exclusive zone 0인 surface를 이미 패널의 예약 공간을 뺀 영역에 배치한다. Qt가 `availableGeometry()`에도 패널 여백을 보고하는 환경에서는 현재 margin 처리가 여백을 중복 적용해 펫이 추가로 떠 보일 수 있다. 실제 Qt/KWin 환경의 geometry 값과 배치를 확인한 뒤 조정한다. [KWin 6.7.5 배치 구현](https://github.com/KDE/kwin/blob/v6.7.5/src/layershellv1integration.cpp#L71)을 근거로 한 조건부 지적이며, 실제 Linux 재현 결과는 아니다.
+
+입력 목표 영역은 캐릭터 외곽을 감싸는 사각형이다. 둥근 모서리의 투명 픽셀까지 통과하는 모양별 입력 영역은 구현하지 않았다. 2단계 이후 제품 구현에 들어가기 전에 실제 가장자리 검사에서 이 목표 영역의 적절성을 판단한다. 전체 화면 위 표시와 여러 디스플레이 사이 이동은 승인된 초기 범위 밖이다.
 
 ## 실제 컴퓨터에서 확인하는 순서
 

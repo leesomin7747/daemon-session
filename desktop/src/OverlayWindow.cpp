@@ -79,7 +79,7 @@ void OverlayWindow::updateInputRegion()
 
 void OverlayWindow::setEditorActive(bool active)
 {
-    if (m_editorActive == active)
+    if (m_editorActive == active && !active)
         return;
     m_editorActive = active;
     if (active && QGuiApplication::focusWindow() != this)

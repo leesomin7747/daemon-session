@@ -13,3 +13,9 @@ set_tests_properties(overlay_probe_smoke PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
     TIMEOUT 3
 )
+
+add_executable(tst_overlayqml tst_overlayqml.cpp)
+target_link_libraries(tst_overlayqml PRIVATE daemon_overlay Qt6::Test)
+target_compile_definitions(tst_overlayqml PRIVATE PROBE_QML_FILE="${PROJECT_SOURCE_DIR}/probes/overlay/Probe.qml")
+add_test(NAME overlayqml COMMAND tst_overlayqml)
+set_tests_properties(overlayqml PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

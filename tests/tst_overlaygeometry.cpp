@@ -97,6 +97,23 @@ private slots:
         overlay.setEditorActive(false);
         QTRY_VERIFY_WITH_TIMEOUT(work.isActive(), 1000);
     }
+
+    void explicitEditCanRegainFocus()
+    {
+        QWindow work;
+        work.show();
+        work.requestActivate();
+        QTRY_VERIFY(work.isActive());
+        OverlayWindow overlay(QGuiApplication::primaryScreen());
+        overlay.setInteractiveRegions({QRectF(0, 0, 300, 80)});
+        overlay.show();
+        overlay.setEditorActive(true);
+        QTRY_VERIFY(overlay.isActive());
+        work.requestActivate();
+        QTRY_VERIFY(work.isActive());
+        overlay.setEditorActive(true);
+        QTRY_VERIFY_WITH_TIMEOUT(overlay.isActive(), 1000);
+    }
 };
 
 QTEST_MAIN(OverlayGeometryTest)
