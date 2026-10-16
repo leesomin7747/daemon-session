@@ -152,9 +152,11 @@ Task 3 구현 결정: 승인에도 동일한 10분 만료를 적용하도록 호
 
 ### Task 4: WebSocket 서버와 단일 순서의 세션 이벤트
 
-**Files:** Create server/src/{main.cpp,SessionBroker.h,SessionBroker.cpp}, tests/tst_broker.cpp.
+**Files:** Create server/src/{main.cpp,SessionBroker.h,SessionBroker.cpp}, core/WireProtocol.{h,cpp}, tests/tst_broker.cpp, docs/verification/websocket.md. Modify PairStore for a pending request lookup and the common event codec's busy combination validation.
 
-**Interfaces:** `SessionBroker(PairStore&, QObject* parent=nullptr)`; `listen(const QHostAddress&, quint16) -> bool`; `close() -> void`. 인증된 WebSocket에 공통 Command를 받아 SessionEvent와 Snapshot을 송신한다. 시작 시 localhost:8787을 기본값으로 한다.
+**Interfaces:** `SessionBroker(PairStore&, QObject* parent=nullptr)`; `SessionBroker(PairStore&, BrokerClock, QObject* parent=nullptr)`; `listen(const QHostAddress&, quint16) -> bool`; `serverPort() -> quint16`; `close() -> void`. BrokerClock은 monotonicMs/utcNow 함수를 주입한다. `WireFrame { QString op; QString requestId; QJsonObject body; }`, `encodeFrame/decodeFrame`으로 봉투를 공통 검증한다. `PairStore::pendingJoinForInviter(const PeerId&, QDateTime) -> std::optional<PendingJoin>`은 아직 유효한 requestId/applicantId를 반환한다. 인증된 WebSocket에 공통 Command를 받아 SessionEvent와 Snapshot을 송신한다. 시작 시 localhost:8787을 기본값으로 한다.
+
+Task 4 구현 결정: 평문 WS는 loopback에만 바인딩하며 브라우저 Origin·query credential을 거부한다. 동일 기기의 새 인증 소켓은 기존 권한을 먼저 폐기하고 대체한다. 기기당 초당 10/burst 20은 control을 포함한 새 요청에 적용하고, 별도의 연결 프레임 한도(초당 20/burst 40)는 재시도 flood도 제한한다. 정상 거절 결과도 최근 256개 캐시에 포함하며 같은 ID의 다른 본문은 request_conflict다. 연결 해제·저장소 오류는 권한을 먼저 폐기한 뒤 응답과 close를 내보내고 최대 1초 후 강제 종료한다. 대기 승인은 발급자 재인증 시 DB에서 복구한다. 외부 TLS 배포는 Task 8, 제품 UI·Client는 후속 Task 범위로 유지한다.
 
 - [ ] **1. loopback의 두 실제 QWebSocket으로 실패 테스트를 작성한다.** `controlFramesEstablishMutuallyApprovedPair`, `authTimeoutClosesSocket`, `bothPeersReceiveIdenticalEvent`, `busyRaceRespectsServerOrder`, `disconnectBeforeNoteRejectsWithoutReplay`, `duplicateRequestDoesNotRepeat`, `reconnectGetsSnapshotNotOldAnimation`, `unknownPeerCannotJoin`, `oversizedFrameAndFloodAreBounded`를 검증한다. 동일 이벤트의 eventId/revision/bubble/finalX가 같아야 한다.
 - [ ] **2. `ctest --test-dir build -R broker --output-on-failure`에서 실패를 확인한다.**

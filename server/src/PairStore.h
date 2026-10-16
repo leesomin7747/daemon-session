@@ -3,6 +3,8 @@
 #include <QDateTime>
 #include <QSqlDatabase>
 
+struct PendingJoin { QString requestId; PeerId applicantId; };
+
 // Callers must derive peer IDs from authenticate(), never from untrusted actor fields.
 // One instance belongs to the thread that created its Qt SQL connection.
 class PairStore {
@@ -21,6 +23,7 @@ public:
     std::optional<PairId> pairForPeer(const PeerId& peer);
     QVector<PeerId> members(const PairId& pair);
     std::optional<PeerId> inviterForRequest(const QString& requestId, QDateTime now);
+    std::optional<PendingJoin> pendingJoinForInviter(const PeerId&, QDateTime now);
     void revokePair(const PeerId& peer);
 
 private:

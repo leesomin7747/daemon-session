@@ -84,6 +84,22 @@ private slots:
         QCOMPARE(decoded->text, "친구가 에너지음료를 두고 갔어요.");
         QVERIFY(decoded->queued); QVERIFY(decoded->busy); QVERIFY(decoded->bubble.isEmpty());
     }
+    void busyEventCombinationsFollowSessionRules()
+    {
+        SessionEvent event{"e", "r", "epoch", 1, Action::Ping, "a", "b", "툭", "안녕", 0.5, false, "", true};
+        // A busy recipient never receives an animated prank.
+        QVERIFY(encodeEvent(event).isEmpty());
+        const QJsonObject prank{{"eventId","e"},{"requestId","r"},{"epoch","epoch"},{"revision","1"},
+            {"action","ping"},{"actorId","a"},{"targetId","b"},{"caption","툭"},{"bubble","안녕"},
+            {"finalX",0.5},{"queued",false},{"text",""},{"busy",true}};
+        QVERIFY(!decodeEvent(QJsonDocument(prank).toJson()));
+        event.action=Action::Coffee; QVERIFY(encodeEvent(event).isEmpty());
+        event.action=Action::Note; event.text="hello"; event.bubble.clear();
+        QVERIFY(encodeEvent(event).isEmpty());
+        event.queued=true; QVERIFY(decodeEvent(encodeEvent(event)));
+        event.action=Action::SetWip; event.actorId="b"; event.queued=false;
+        QVERIFY(decodeEvent(encodeEvent(event)));
+    }
 };
 QTEST_GUILESS_MAIN(ProtocolTest)
 #include "tst_protocol.moc"

@@ -239,6 +239,16 @@ std::optional<PeerId> PairStore::inviterForRequest(const QString& requestId, QDa
     return q.value(0).toString();
 }
 
+std::optional<PendingJoin> PairStore::pendingJoinForInviter(const PeerId& inviter, QDateTime now)
+{
+    if (!boundedId(inviter) || !now.isValid()) return {};
+    auto q = query(m_db, "SELECT request_id,applicant_id FROM invites WHERE inviter_id=? "
+                        "AND request_id IS NOT NULL AND created_at<=? AND expires_at>?",
+                   {inviter, now.toMSecsSinceEpoch(), now.toMSecsSinceEpoch()});
+    if (!nextRow(q)) return {};
+    return PendingJoin{q.value(0).toString(), q.value(1).toString()};
+}
+
 PairId PairStore::approveJoin(const PeerId& inviter, const QString& requestId, QDateTime now)
 {
     if (!boundedId(inviter) || !boundedId(requestId) || !now.isValid()) return {};

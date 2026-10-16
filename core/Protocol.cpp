@@ -92,6 +92,10 @@ bool validEvent(const SessionEvent& event)
         || actionName(event.action).isEmpty() || !position(event.finalX)
         || !textFits(event.caption, 512, false) || !textFits(event.bubble, 512, true)) return false;
     if (own(event.action) != (event.actorId == event.targetId)) return false;
+    if (!own(event.action) && event.busy && !gift(event.action) && event.action != Action::Note)
+        return false;
+    if ((gift(event.action) || event.action == Action::Note) && event.queued != event.busy)
+        return false;
     if (event.queued && (!event.busy || (!gift(event.action) && event.action != Action::Note)
                          || !event.bubble.isEmpty())) return false;
     if (event.action == Action::Note) return textFits(event.text, 120, false);

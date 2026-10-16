@@ -230,16 +230,22 @@ private slots:
     void pendingRequestPersistsAndRoutesOnlyToIssuer()
     {
         QTemporaryDir dir; const auto path = dir.filePath("pending.sqlite");
-        PeerId issuer; QString request;
+        PeerId issuer, applicant; QString request;
         {
             PairStore store(path); auto a = store.createDevice(); auto b = store.createDevice();
-            issuer = a.id; request = store.requestJoin(store.createInvite(a.id, now), b.id, now);
+            issuer = a.id; applicant = b.id;
+            request = store.requestJoin(store.createInvite(a.id, now), b.id, now);
             QVERIFY(!request.isEmpty());
         }
         PairStore reopened(path);
         QCOMPARE(reopened.inviterForRequest(request, now), std::optional<PeerId>(issuer));
         QVERIFY(!reopened.inviterForRequest(request, now.addSecs(600)));
         QVERIFY(!reopened.inviterForRequest("unknown", now));
+        const auto pending = reopened.pendingJoinForInviter(issuer, now);
+        QVERIFY(pending); QCOMPARE(pending->requestId, request); QCOMPARE(pending->applicantId, applicant);
+        QVERIFY(!reopened.pendingJoinForInviter(applicant, now));
+        QVERIFY(!reopened.pendingJoinForInviter(issuer, now.addSecs(600)));
+        QVERIFY(!reopened.pendingJoinForInviter(issuer, now.addSecs(-1)));
     }
     void databaseConstraintEnforcesTwoSlots()
     {
