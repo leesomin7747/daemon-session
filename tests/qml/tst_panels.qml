@@ -247,5 +247,33 @@ Item {
             model.requestFailed(first,"offline"); wait(0); compare(control("sendNote").enabled,false)
             model.requestFailed(second,"offline"); wait(0); compare(control("sendNote").enabled,true)
         }
+        function test_busyFailureIsVisibleAndCannotUnlockSave() {
+            if(!open("wip","a")) return
+            var busy=control("wipSecondary").parent.children[0]
+            busy.forceActiveFocus(); keyClick(Qt.Key_Space); wait(0)
+            compare(requests.count,1)
+            var first=requests.signalArguments[0][4]
+            model.requestFailed(first,"rate_limited"); wait(0)
+            verify(control("panelStatus").text.length>0,"Busy failure must explain what happened")
+            control("wipEditor").text="보존할 초안"; click("saveWip")
+            compare(requests.count,2); compare(control("saveWip").enabled,false)
+            model.requestFailed(first,"timeout"); wait(0)
+            compare(control("saveWip").enabled,false)
+            deliver("setWip","a","a",1,"보존할 초안",false,false)
+            compare(control("saveWip").enabled,true)
+        }
+        function test_busyReceiptRetainsDraftAndReenablesControls() {
+            if(!open("wip","a")) return
+            control("wipEditor").text="아직 저장 안 한 초안"
+            var busy=control("wipSecondary").parent.children[0]
+            busy.forceActiveFocus(); keyClick(Qt.Key_Space); wait(0)
+            compare(requests.count,1)
+            compare(control("saveWip").enabled,false)
+            compare(busy.enabled,false)
+            deliver("setBusy","a","a",1,"",true,false)
+            compare(control("wipEditor").text,"아직 저장 안 한 초안")
+            compare(control("saveWip").enabled,true); compare(busy.enabled,true)
+            compare(busy.text,"busy 풀기")
+        }
     }
 }

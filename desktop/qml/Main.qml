@@ -59,7 +59,7 @@ Item {
     }
     function playEvent() {
         var e=model.lastEvent; if(!e.eventId) return
-        if(panelLoader.item && panelLoader.item.acceptEvent(e)) { caption=e.caption; effectTimer.restart() }
+        if(panelLoader.item && typeof panelLoader.item.acceptEvent==="function" && panelLoader.item.acceptEvent(e)) { caption=e.caption; effectTimer.restart() }
         var p=petFor(e.targetId); if(!p) return
         if(e.queued) { Qt.callLater(syncRegions); return }
         if(["setBusy","setWip","ackInbox","note"].indexOf(e.action)>=0) return

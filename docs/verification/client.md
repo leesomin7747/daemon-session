@@ -28,6 +28,10 @@
 
 ![같은 세션 연결 완료](evidence/connection-ready.png)
 
+## 독립 리뷰 후 회귀
+
+독립 read-only 리뷰에서 Critical/Minor는 없고 Important 두 건을 확인했다. 연결 화면에 이벤트 수신 handler가 없을 때의 TypeError를 재현한 뒤 선택 handler를 검사해 선물 연출을 계속한다. WIP 패널의 busy 전환도 pending 요청 ID로 추적해 실패 안내를 표시하고, 완료 후 초안을 바꾸지 않는다. 이전 busy 요청의 늦은 오류가 새 WIP 저장을 풀지 않는 검사도 포함한다. 세 회귀를 RED→GREEN으로 수정했으며 추가 시각 캡처나 재리뷰는 하지 않았다.
+
 ## 남은 검증
 
 Task8: 인터넷 WSS/TLS 종료와 호스트, 설치/서명 산출물, 두 프로세스의 전체 제품 시나리오·30분 부하/포커스, 두 실제 컴퓨터 사용. Linux KDE Wayland와 실제 Linux OS 비밀 저장소/입력기는 사용자 요청대로 완성본을 보여준 뒤 검증한다. macOS 오버레이의 기존 미확인 항목은 [기록](overlay.md)을 유지한다. loopback·주입 IME·논리 배율 검사는 외부 서버/실제 입력기/KWin 검증의 대체 증거가 아니다.

@@ -7,21 +7,29 @@ PanelFrame {
     property bool localPeer: false
     property bool localOnline: false
     property string submittedText: ""
+    property string pendingAction: ""
+    property bool submittedBusy: false
     signal actionChosen(string action,string text,bool busy,string requestId)
     signal navigate(string kind)
     title: "WIP · "+(localPeer?"나":"친구")
     initialFocusItem: editorLoader.item?editorLoader.item.editor:friendActions
     function acceptEvent(e) {
-        if(!pending || e.requestId!==pendingRequestId || e.action!=="setWip" || e.actorId!==peer.id || e.targetId!==peer.id || e.text!==submittedText) return false
+        if(!pending || e.requestId!==pendingRequestId || e.action!==pendingAction || e.actorId!==peer.id || e.targetId!==peer.id) return false
+        if((pendingAction==="setWip" && e.text!==submittedText) || (pendingAction==="setBusy" && e.busy!==submittedBusy)) return false
         pending=false; statusText=e.caption
-        if(editorLoader.item) editorLoader.item.text=e.text
+        if(pendingAction==="setWip" && editorLoader.item) editorLoader.item.text=e.text
         return true
     }
     function submitWip() {
         var field=editorLoader.item
         if(!field || field.inputMethodComposing || pending || !localOnline || !model.textValid("setWip",field.text)) return
-        submittedText=model.normalizedText(field.text); pendingRequestId=model.newRequestId(); pending=true; statusText="저장 중…"
+        submittedText=model.normalizedText(field.text); pendingAction="setWip"; pendingRequestId=model.newRequestId(); pending=true; statusText="저장 중…"
         actionChosen("setWip",field.text,false,pendingRequestId)
+    }
+    function submitBusy() {
+        if(pending || !localOnline || !model) return
+        submittedBusy=!peer.busy; pendingAction="setBusy"; pendingRequestId=model.newRequestId(); pending=true; statusText="busy 변경 중…"
+        actionChosen("setBusy","",submittedBusy,pendingRequestId)
     }
     Loader {
         id: editorLoader; width: panel.bodyWidth; active: panel.localPeer
@@ -46,7 +54,7 @@ PanelFrame {
     }
     PanelButton {
         objectName: "saveWip"; visible: panel.localPeer; width: panel.bodyWidth; primary: true
-        text: panel.pending?"저장 중…":"WIP 저장"
+        text: panel.pending && panel.pendingAction==="setWip"?"저장 중…":"WIP 저장"
         enabled: panel.model && panel.localOnline && !panel.pending && editorLoader.item && !editorLoader.item.commitRequested && panel.model.textValid("setWip",editorLoader.item.draftText)
         onClicked: {
             if(!enabled) return
@@ -58,8 +66,8 @@ PanelFrame {
         PanelButton {
             id: friendActions; width: (parent.width-8)/2
             text: panel.localPeer?(panel.peer.busy?"busy 풀기":"busy"):"장난·선물"
-            enabled: panel.localPeer?panel.localOnline:!panel.pending
-            onClicked: panel.localPeer?panel.actionChosen("setBusy","",!panel.peer.busy,panel.model.newRequestId()):panel.navigate("menu")
+            enabled: !panel.pending && (!panel.localPeer || panel.localOnline)
+            onClicked: panel.localPeer?panel.submitBusy():panel.navigate("menu")
         }
         PanelButton {
             objectName: "wipSecondary"; width: (parent.width-8)/2

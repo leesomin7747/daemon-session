@@ -92,5 +92,13 @@ Item {
             keyClick(Qt.Key_Tab); compare(control("connectServer").activeFocus,true)
             keyClick(Qt.Key_Escape); compare(scene.panelKind,"")
         }
+        function test_receivedGiftStillPlaysWithConnectionOpen() {
+            if(!open()) return
+            fixtures.deliver(model,{eventId:"connection-gift",requestId:"remote-coffee",epoch:"epoch-1",revision:"1",
+                action:"coffee",actorId:"b",targetId:"a",caption:"커피 두고 갈게",bubble:"한 모금만",finalX:0.25,text:"",busy:false,queued:false})
+            wait(0)
+            compare(scene.effectKind,"coffee"); compare(scene.displayedBubble,"한 모금만")
+            compare(scene.panelKind,"connect")
+        }
     }
 }
