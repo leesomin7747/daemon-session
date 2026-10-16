@@ -25,3 +25,7 @@ foreach(name protocol session)
     target_link_libraries(tst_${name} PRIVATE daemon_core Qt6::Test)
     add_test(NAME ${name} COMMAND tst_${name})
 endforeach()
+
+add_executable(tst_pairing tst_pairing.cpp)
+target_link_libraries(tst_pairing PRIVATE daemon_pairing Qt6::Test)
+add_test(NAME pairing COMMAND tst_pairing)

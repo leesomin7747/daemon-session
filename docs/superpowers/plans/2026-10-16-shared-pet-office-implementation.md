@@ -140,7 +140,9 @@ Task 2 구현 결정: 상태가 가득 차면 기존 항목을 버리지 않고 
 
 **Files:** Create server/src/PairStore.{h,cpp}, tests/tst_pairing.cpp; add server/CMakeLists.txt.
 
-**Interfaces:** `PairStore(const QString& dbPath)`; `createDevice() -> DeviceCredential`; `createInvite(const PeerId&, QDateTime now) -> QString`; `requestJoin(const QString& invite, const PeerId&, QDateTime now) -> QString`; `approveJoin(const PeerId& inviter, const QString& requestId) -> PairId`; `authenticate(const QByteArray& token) -> std::optional<PeerId>`; `pairForPeer(const PeerId&) -> std::optional<PairId>`; `members(const PairId&) -> QVector<PeerId>`; `revokePair(const PeerId&) -> void`. DeviceCredential은 id와 최초 한 번 반환할 token을 담는다.
+**Interfaces:** `PairStore(const QString& dbPath)`; `createDevice() -> DeviceCredential`; `createInvite(const PeerId&, QDateTime now) -> QString`; `requestJoin(const QString& invite, const PeerId&, QDateTime now) -> QString`; `approveJoin(const PeerId& inviter, const QString& requestId, QDateTime now=QDateTime::currentDateTimeUtc()) -> PairId`; `authenticate(const QByteArray& token) -> std::optional<PeerId>`; `pairForPeer(const PeerId&) -> std::optional<PairId>`; `members(const PairId&) -> QVector<PeerId>`; `inviterForRequest(const QString& requestId, QDateTime now) -> std::optional<PeerId>`; `revokePair(const PeerId&) -> void`. DeviceCredential은 id와 최초 한 번 반환할 token을 담는다. 저장소 장애는 비밀 값 없는 예외로, 정상 거절은 빈 결과로 구별한다.
+
+Task 3 구현 결정: 승인에도 동일한 10분 만료를 적용하도록 호환 가능한 기본 시간 인자를 추가한다. Broker의 clock을 주입할 때 생성·요청·승인 모두 같은 clock 값을 전달한다. inviterForRequest는 Broker가 join.requested를 발급자에게 보낼 수 있게 하는 조회다. 발급자당 하나의 현재 초대·신청자당 하나의 대기 요청만 두며 새 초대는 이전 코드와 대기를 취소한다. 연결 해제는 페어 접근 권한과 관련 초대를 제거하되 기기 식별 토큰은 유지한다. Broker는 해제 직전에 멤버를 조회하고 연결 해제 후 두 소켓의 세션 권한·캐시를 즉시 폐기해야 한다.
 
 - [ ] **1. `tst_pairing`에 영속 재접속, 10분 만료, 사용한 코드 재사용 거부, 발급자 승인 전 페어 미성립, 셋째 기기 거부, 다른 기기의 승인 거부, 연결 해제 후 권한 폐기, DB에 원문 token/invite 없음 테스트를 작성한다.**
 - [ ] **2. `ctest --test-dir build -R pairing --output-on-failure`를 실행해 실패를 확인한다.**

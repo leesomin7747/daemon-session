@@ -6,8 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Quick Test)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Quick Test Sql)
 add_subdirectory(core)
+add_subdirectory(server)
 
 add_library(daemon_overlay STATIC
     desktop/src/OverlayWindow.cpp

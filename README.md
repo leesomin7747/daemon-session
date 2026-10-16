@@ -6,7 +6,7 @@ A desktop space where interactions with daemons make working apart feel like wor
 
 ## 현재 단계
 
-네이티브 오버레이 검증용 앱과 UI·서버가 함께 사용할 상태 규칙 및 JSON codec을 구현했습니다. macOS에서 빌드·일부 실제 입력 검증을 마쳤으며, KDE Wayland 실기 검증은 남아 있습니다. 실제 네트워크 연결과 제품 UI에는 아직 공통 규칙을 연결하지 않았습니다.
+네이티브 오버레이 검증용 앱, 공통 상태 규칙·JSON codec, SQLite 기반 비공개 페어링·기기 인증 저장소를 구현했습니다. macOS에서 빌드·일부 실제 입력 검증을 마쳤으며, KDE Wayland 실기 검증은 남아 있습니다. 실제 네트워크 연결과 제품 UI에는 아직 이 기반을 연결하지 않았습니다.
 
 첫 MVP는 두 사람의 비공개 세션을 대상으로 하며, 더 많은 데몬을 위한 확장은 이후에 다룹니다. 첫 지원 목표는 macOS와 KDE Plasma의 Wayland 환경입니다.
 
@@ -65,3 +65,15 @@ probe에는 이동 가능한 두 테스트 캐릭터, 뒤 창 클릭 카운터, 
 승인 문구는 `core/copy/ko.json`에 포함되며 `CopyCatalog`가 상황별 직전 문구를 피해서 고릅니다. 결과를 이벤트에 담으므로 클라이언트가 따로 문구를 추첨할 필요가 없습니다. 받은 쪽지는 서버 DB나 로그에 쓰지 않고 세션 메모리에만 둡니다. 전송 크기를 넘길 만큼 쌓이면 새 요청을 명시적으로 거부하며 기존 항목을 버리지 않습니다.
 
 공통 규칙만 검증하려면 `ctest --test-dir build -R 'protocol|session' --output-on-failure`, 오버레이 회귀 검사를 포함하려면 `ctest --preset dev`를 실행하세요.
+
+## 비공개 페어링과 기기 인증
+
+`server/src/PairStore.h`는 Qt SQL/SQLite를 사용하는 서버 측 저장소입니다. 기기 등록 시 32바이트의 시스템 난수 토큰을 최초 한 번 반환하며, DB에는 SHA-256 해시만 저장합니다. 초대도 32바이트 난수를 URL-safe 코드로 표현하고 해시만 보관합니다. 코드는 10분 유효하며 참여 요청이 접수되면 재사용할 수 없습니다. 실제 페어는 발급자가 승인해야 만들어지고, 승인 시점에도 만료를 다시 확인합니다.
+
+모든 쓰기는 prepared statement와 `BEGIN IMMEDIATE` 트랜잭션으로 처리합니다. DB 제약이 기기당 한 페어·페어당 두 슬롯을 보장하며, 실패한 승인은 부분 연결을 남기지 않습니다. 기기 인증과 페어 정보는 DB를 다시 열어도 유지됩니다. 저장소 열기·스키마·SQL 오류는 예외로 처리하며 임시 메모리 인증으로 우회하지 않습니다. 파일 DB는 소유자만 읽고 쓸 수 있게 만듭니다.
+
+연결 해제는 양쪽의 페어 멤버십과 관련 초대를 폐기합니다. 기기 자체의 인증 자격은 유지되지만 예전 세션에 접근할 권한은 사라지며, 다시 연결하려면 새 초대와 승인이 필요합니다. 호출자는 반드시 인증된 연결에서 얻은 PeerId를 사용해야 합니다. 소켓의 인증·해제 후 연결 종료·클라이언트 비밀 저장소는 후속 단계에서 연결합니다.
+
+정상적인 거절은 빈 문자열/optional로, 저장소 장애는 비밀 값을 포함하지 않는 `std::runtime_error`로 전달합니다. `approveJoin`의 시간 인자는 테스트/서버 clock을 전달할 수 있고 생략하면 현재 UTC 시각을 사용합니다. `inviterForRequest`는 후속 Broker가 참여 요청을 정확한 발급자에게 전달할 때 사용하는 만료 검사 포함 조회입니다.
+
+`ctest --test-dir build -R pairing --output-on-failure`로 실제 임시 SQLite DB를 이용한 인증·승인·만료·경합·트랜잭션 실패 복구를 검증합니다. 이 단계는 저장소 기반이며 아직 네트워크에 공개된 인증 서비스는 아닙니다. 난수와 트랜잭션 선택은 [Qt 시스템 난수 문서](https://doc.qt.io/qt-6/qrandomgenerator.html#system), [SQLite 트랜잭션 문서](https://www.sqlite.org/lang_transaction.html)를 기준으로 합니다.
