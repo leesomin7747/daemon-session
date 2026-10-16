@@ -42,6 +42,8 @@ std::optional<WireFrame> decodeFrame(const QByteArray& bytes)
     Q_UNUSED(text);
     if (utf8.hasError()) return {};
     QJsonParseError error;
+    QJsonDocument::fromJson(bytes,&error);
+    if(error.error!=QJsonParseError::NoError) return {};
     auto escaped=bytes;
     escaped.replace(QByteArray::fromHex("efbbbf"),"\\ufeff");
     const auto doc = QJsonDocument::fromJson(escaped,&error);

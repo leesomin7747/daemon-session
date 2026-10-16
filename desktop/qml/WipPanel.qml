@@ -10,7 +10,7 @@ PanelFrame {
     signal actionChosen(string action,string text,bool busy)
     signal navigate(string kind)
     title: "WIP · "+(localPeer?"나":"친구")
-    initialFocusItem: editorLoader.item?editorLoader.item:friendActions
+    initialFocusItem: editorLoader.item?editorLoader.item.editor:friendActions
     function acceptEvent(e) {
         if(!pending || e.action!=="setWip" || e.actorId!==peer.id || e.targetId!==peer.id || e.text!==submittedText) return false
         pending=false; statusText=e.caption
@@ -19,10 +19,10 @@ PanelFrame {
     }
     Loader {
         id: editorLoader; width: panel.bodyWidth; active: panel.localPeer
-        sourceComponent: MemoEditor {
-            objectName: "wipEditor"; width: editorLoader.width
+        sourceComponent: MemoField {
+            editorName: "wipEditor"; width: editorLoader.width
             height: Math.max(36,Math.min(78,panel.viewportHeight-8))
-            Accessible.name: "내 WIP"; placeholderText: "지금 작업 중인 것"
+            label: "내 WIP"; placeholderText: "지금 작업 중인 것"
             readOnly: panel.pending
             Component.onCompleted: text=panel.peer.wip
         }

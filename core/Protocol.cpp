@@ -65,6 +65,8 @@ std::optional<QJsonObject> readObject(const QByteArray& bytes)
     Q_UNUSED(decoded);
     if (utf8.hasError()) return {};
     QJsonParseError error;
+    QJsonDocument::fromJson(bytes,&error);
+    if(error.error!=QJsonParseError::NoError) return {};
     // Escaped U+FEFF is retained by Qt's JSON string parser; a raw leading
     // UTF-8 BOM inside a string is otherwise consumed as an encoding marker.
     auto escaped=bytes;

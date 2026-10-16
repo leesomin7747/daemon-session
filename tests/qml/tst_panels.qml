@@ -187,5 +187,35 @@ Item {
             keyClick(Qt.Key_PageUp); wait(0); compare(viewport.contentY,0)
             compare(scene.petFor("a").queuedCount,12); compare(requests.count,0)
         }
+        function test_multilineEditorKeepsCaretVisible_data() {
+            return [{tag:"WIP",kind:"wip",id:"a",editor:"wipEditor",height:380},
+                {tag:"note",kind:"note",id:"b",editor:"noteEditor",height:380},
+                {tag:"short-WIP",kind:"wip",id:"a",editor:"wipEditor",height:250},
+                {tag:"short-note",kind:"note",id:"b",editor:"noteEditor",height:250}]
+        }
+        function test_multilineEditorKeepsCaretVisible(data) {
+            scene.height=data.height
+            if(!open(data.kind,data.id)) return
+            var editor=control(data.editor)
+            editor.text="a\n".repeat(19)+"z"; editor.cursorPosition=editor.text.length
+            editor.forceActiveFocus(); verify(waitForRendering(editor)); wait(0)
+            var viewport=editor.parent
+            while(viewport && typeof viewport.contentY==="undefined") viewport=viewport.parent
+            verify(viewport!==null)
+            function checkCaret() {
+                var r=editor.cursorRectangle, p=editor.mapToItem(viewport,r.x,r.y)
+                verify(p.y>=-0.1 && p.y+r.height<=viewport.height+0.1,
+                    "Actual caret must be inside the editor viewport: y="+p.y+" height="+viewport.height)
+            }
+            checkCaret()
+            verify(viewport.clip)
+            for(var i=0;i<25;i++) keyClick(Qt.Key_Up)
+            wait(0); checkCaret()
+            editor.text=""
+            for(i=0;i<10;i++) { keyClick(Qt.Key_A); keyClick(Qt.Key_Return) }
+            keyClick(Qt.Key_Z); wait(0); checkCaret()
+            compare(editor.text,"a\n".repeat(10)+"z")
+            compare(requests.count,0)
+        }
     }
 }

@@ -10,5 +10,5 @@ qt_add_executable(daemon-session MACOSX_BUNDLE src/main.cpp)
 target_link_libraries(daemon-session PRIVATE daemon_scene daemon_overlay daemon_tray)
 qt_add_resources(daemon-session scene PREFIX "/desktop" BASE qml FILES
     qml/Main.qml qml/Pet.qml qml/Prop.qml qml/ActionMenu.qml
-    qml/PanelFrame.qml qml/PanelButton.qml qml/MemoEditor.qml
+    qml/PanelFrame.qml qml/PanelButton.qml qml/MemoEditor.qml qml/MemoField.qml
     qml/WipPanel.qml qml/NoteComposer.qml qml/InboxPanel.qml)

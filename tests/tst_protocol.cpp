@@ -15,6 +15,22 @@ private slots:
         const auto e=decodeEvent(encodeEvent(event)); QVERIFY(e); QCOMPARE(e->text,text);
         const auto frame=decodeFrame(encodeFrame({"session.command","r",QJsonDocument::fromJson(encodeCommand(command(Action::SetWip,"a",text))).object()}));
         QVERIFY(frame); QCOMPARE(frame->body["text"].toString(),text);
+        auto raw=encodeCommand(command(Action::SetWip,"a",text)); raw.replace("\\ufeff",QByteArray::fromHex("efbbbf"));
+        const auto rawCommand=decodeCommand(raw); QVERIFY(rawCommand); QCOMPARE(rawCommand->text,text);
+    }
+    void malformedBomEscapeIsRejectedBeforePreservation() {
+        const QByteArray invalid=QByteArray("\\")+QByteArray::fromHex("efbbbf");
+        const auto commandBytes=QByteArray("{\"requestId\":\"r\",\"action\":\"setWip\",\"targetId\":\"a\",\"text\":\"")+invalid+"\",\"busy\":false}";
+        QJsonParseError error; QJsonDocument::fromJson(commandBytes,&error);
+        QVERIFY(error.error!=QJsonParseError::NoError);
+        QVERIFY(!decodeCommand(commandBytes));
+    }
+    void malformedBomEnvelopeIsRejectedBeforePreservation() {
+        const QByteArray invalid=QByteArray("\\")+QByteArray::fromHex("efbbbf");
+        const auto frame=QByteArray("{\"v\":1,\"op\":\"session.command\",\"requestId\":\"r\",\"body\":{\"text\":\"")+invalid+"\"}}";
+        QJsonParseError error; QJsonDocument::fromJson(frame,&error);
+        QVERIFY(error.error!=QJsonParseError::NoError);
+        QVERIFY(!decodeFrame(frame));
     }
     void commandRoundTrip()
     {

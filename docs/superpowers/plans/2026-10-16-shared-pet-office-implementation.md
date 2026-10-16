@@ -178,7 +178,7 @@ Task 4 구현 결정: 평문 WS는 loopback에만 바인딩하며 브라우저 O
 
 ### Task 6: WIP, 쪽지, busy와 받은 항목 패널
 
-**Files:** Create desktop/qml/{WipPanel.qml,InboxPanel.qml,NoteComposer.qml,PanelFrame.qml,PanelButton.qml,MemoEditor.qml}, desktop/src/DesktopTray.*, tests/qml/tst_panels.qml, tests/tst_panelswindow.cpp. Modify SceneModel.*, Main.qml, ActionMenu.qml, main.cpp, CMake and shared JSON encoding for the reproduced Unicode boundary.
+**Files:** Create desktop/qml/{WipPanel.qml,InboxPanel.qml,NoteComposer.qml,PanelFrame.qml,PanelButton.qml,MemoEditor.qml,MemoField.qml}, desktop/src/DesktopTray.*, tests/qml/tst_panels.qml, tests/tst_panelswindow.cpp. Modify SceneModel.*, Main.qml, ActionMenu.qml, main.cpp, CMake and shared JSON encoding for the reproduced Unicode boundary.
 
 **Interfaces:** Task 5의 actionRequested를 사용한다. 자기 WIP 저장은 SetWip, busy는 SetBusy, 쪽지는 Note, 확인은 AckInbox를 요청한다. 서버 이벤트 전 UI를 수신 성공 상태로 확정하지 않는다.
 

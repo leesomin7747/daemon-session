@@ -21,10 +21,10 @@ FocusScope {
     function reveal(item) {
         if(!item) return
         var ancestor=item
-        while(ancestor && ancestor!==content) ancestor=ancestor.parent
+        while(ancestor && ancestor.parent!==content) ancestor=ancestor.parent
         if(!ancestor) return
-        var top=item.mapToItem(content,0,0).y
-        var bottom=top+Math.min(item.height,viewport.height)
+        var top=ancestor.y
+        var bottom=top+Math.min(ancestor.height,viewport.height)
         var offset=viewport.contentY
         if(top<offset) offset=top
         else if(bottom>offset+viewport.height) offset=bottom-viewport.height
