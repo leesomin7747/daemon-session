@@ -91,7 +91,7 @@ Item {
         onYChanged: pet.geometryChanged()
         onRotationChanged: pet.geometryChanged()
         Accessible.role: Accessible.Button
-        Accessible.name: (pet.localPeer?"내 데몬":"친구 데몬")+(pet.busy?" · busy":"")+" · 메뉴 열기"
+        Accessible.name: (pet.localPeer?"내 데몬":"친구 데몬")+(pet.busy?" · busy":"")+" · WIP 열기"
         Accessible.onPressAction: pet.pressed()
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: pet.pressed() }
         Shape {

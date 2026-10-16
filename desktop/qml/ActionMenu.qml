@@ -10,6 +10,7 @@ FocusScope {
     signal motionToggled()
     signal closed()
     signal quitRequested()
+    signal panelRequested(string kind)
     Accessible.role: Accessible.Pane
     Accessible.name: localPeer?"내 데몬 메뉴":"친구 데몬 메뉴"
     Keys.onEscapePressed: closed()
@@ -78,6 +79,11 @@ FocusScope {
                 text: "움직임 줄이기"; checked: menu.reducedMotion; onClicked: menu.motionToggled()
                 palette.windowText: "#eeeae1"; palette.text: "#eeeae1"; palette.highlight: "#bad8ba"
                 font.pixelSize: 11
+            }
+            Row {
+                width: parent.width; spacing: 6
+                PanelButton { width: (parent.width-6)/2; text: "WIP"; onActiveFocusChanged: if(activeFocus) menu.reveal(this); onClicked: menu.panelRequested("wip") }
+                PanelButton { objectName: "composeNote"; width: (parent.width-6)/2; text: menu.localPeer?"받은 것":"쪽지 보내기"; onActiveFocusChanged: if(activeFocus) menu.reveal(this); onClicked: menu.panelRequested(menu.localPeer?"inbox":"note") }
             }
             Row {
                 spacing: 12

@@ -20,6 +20,9 @@ public:
     void applyEvent(const SessionEvent&);
     Q_INVOKABLE void requestAction(const QString& action, const QString& target,
                                    const QString& text={}, bool busy=false);
+    Q_INVOKABLE int textLength(const QString& text) const;
+    Q_INVOKABLE QString normalizedText(const QString& text) const;
+    Q_INVOKABLE bool textValid(const QString& action, const QString& text) const;
 signals:
     void peersChanged();
     void lastEventChanged();

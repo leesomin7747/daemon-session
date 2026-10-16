@@ -94,7 +94,7 @@ ctest --test-dir build -R broker --output-on-failure
 ctest --preset dev
 ```
 
-서버 실행 파일의 재시작과 실제 QWebSocket 두 개를 사용합니다. UI 체험, OS 비밀 저장소, 인터넷 WSS 및 실제 두 컴퓨터 검증은 아직 후속 작업입니다.
+서버 실행 파일의 재시작과 실제 QWebSocket 두 개를 사용합니다. 제품 UI의 실제 서버 연결, OS 비밀 저장소, 인터넷 WSS 및 실제 두 컴퓨터 검증은 아직 후속 작업입니다.
 
 
 ## QML 펫 장면 미리보기
@@ -104,8 +104,16 @@ cmake --build --preset dev
 open build/desktop/daemon-session.app
 ```
 
-Linux에서는 `QT_QPA_PLATFORM=wayland ./build/desktop/daemon-session`로 실행하는 구성이며 아직 실기 검증 전입니다. 지금은 고정된 두 기기의 **로컬 미리보기**입니다. 실제 친구에게 접속하거나 데이터를 전송하지 않습니다. 펫을 누르면 장난·선물 메뉴가 펼쳐지고, 내 메뉴에서 busy와 움직임 줄이기를 바꿀 수 있습니다. WIP 편집·쪽지·받은 항목 패널과 실제 Client 연결은 후속 단계입니다.
+Linux에서는 `QT_QPA_PLATFORM=wayland ./build/desktop/daemon-session`로 실행하는 구성이며 아직 실기 검증 전입니다. 지금은 고정된 두 기기의 **로컬 미리보기**입니다. 실제 친구에게 접속하거나 데이터를 전송하지 않습니다. 펫을 누르면 WIP가 열립니다. 내 WIP는 80자까지 수정·삭제하고, 친구 WIP는 읽으며 장난·선물 메뉴나 120자 쪽지로 이어집니다. 내 WIP에서 busy를 바꾸고 받은 것을 확인합니다. 움직임 줄이기와 종료는 ‘움직임·앱 메뉴’에 있습니다. 실제 Client 연결은 다음 단계입니다.
 
 `--menu`로 키보드에서 내 메뉴를 직접 열고, `--reduced-motion`으로 움직임을 끈 채 시작할 수 있습니다. macOS에서 옵션을 전달하려면 `open build/desktop/daemon-session.app --args --menu`를 사용하세요. 메뉴는 Tab/Shift+Tab으로 이동하고 Space로 실행하며 Escape로 닫습니다. 애니메이션은 최종 위치를 바꾸지 않으며 서버 이벤트의 같은 문구를 표시합니다.
 
 `ctest --test-dir build -R pet --output-on-failure`는 상태 모델, 실제 QML 장면, 네이티브 입력 mask와 실행 smoke를 검사합니다. 장면·배율·포커스의 실제 결과는 [QML 펫 장면 검증 기록](docs/verification/pet-scene.md)에 있습니다.
+
+메뉴바/트레이의 데몬 아이콘에서도 내 펫·친구 펫·받은 것을 열 수 있습니다. Tab/Shift+Tab으로 이동하고 Space로 버튼을 실행하며 Escape로 닫습니다. 편집기의 Enter는 줄바꿈이며, 한글 조합 중에는 저장·발송하지 않습니다. 긴 받은 목록은 Page Up/Down으로 읽고 ‘확인하고 정리’를 누를 때만 비웁니다. busy 수신과 busy 해제는 받은 창을 자동으로 열지 않습니다.
+
+글자 수는 공통 C++ 검증으로 trim 후 Unicode code point를 셉니다. 글자 수를 넘으면 버튼을 비활성화하며 이모지의 절반을 잘라내지 않습니다. 저장·발송·정리는 확정 이벤트를 받은 뒤 반영하고, 거부된 쪽지의 초안은 열린 패널에 유지합니다. 닫은 초안과 로컬 미리보기 상태는 종료 후 보관하지 않습니다. 패널 동작·포커스·실제 한글 확인은 [패널 검증 기록](docs/verification/panels.md)에 있습니다.
+
+```sh
+ctest --test-dir build -R panels --output-on-failure
+```

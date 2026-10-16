@@ -29,8 +29,9 @@ bool valid(const WireFrame& f)
 QByteArray encodeFrame(const WireFrame& f)
 {
     if (!valid(f)) return {};
-    const auto bytes = QJsonDocument(QJsonObject{{"v",1},{"op",f.op},
+    auto bytes = QJsonDocument(QJsonObject{{"v",1},{"op",f.op},
         {"requestId",f.requestId},{"body",f.body}}).toJson(QJsonDocument::Compact);
+    bytes.replace(QByteArray::fromHex("efbbbf"),"\\ufeff");
     return bytes.size() <= MaxFrameBytes ? bytes : QByteArray();
 }
 std::optional<WireFrame> decodeFrame(const QByteArray& bytes)
@@ -41,7 +42,9 @@ std::optional<WireFrame> decodeFrame(const QByteArray& bytes)
     Q_UNUSED(text);
     if (utf8.hasError()) return {};
     QJsonParseError error;
-    const auto doc = QJsonDocument::fromJson(bytes,&error);
+    auto escaped=bytes;
+    escaped.replace(QByteArray::fromHex("efbbbf"),"\\ufeff");
+    const auto doc = QJsonDocument::fromJson(escaped,&error);
     if (error.error != QJsonParseError::NoError || !doc.isObject()) return {};
     const auto o = doc.object();
     if (o.size() != 4 || !o["v"].isDouble() || o["v"].toDouble() != 1

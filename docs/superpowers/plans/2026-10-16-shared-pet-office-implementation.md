@@ -178,15 +178,15 @@ Task 4 구현 결정: 평문 WS는 loopback에만 바인딩하며 브라우저 O
 
 ### Task 6: WIP, 쪽지, busy와 받은 항목 패널
 
-**Files:** Create desktop/qml/{WipPanel.qml,InboxPanel.qml,NoteComposer.qml}, tests/qml/tst_panels.qml. Modify SceneModel.*, Main.qml, ActionMenu.qml.
+**Files:** Create desktop/qml/{WipPanel.qml,InboxPanel.qml,NoteComposer.qml,PanelFrame.qml,PanelButton.qml,MemoEditor.qml}, desktop/src/DesktopTray.*, tests/qml/tst_panels.qml, tests/tst_panelswindow.cpp. Modify SceneModel.*, Main.qml, ActionMenu.qml, main.cpp, CMake and shared JSON encoding for the reproduced Unicode boundary.
 
 **Interfaces:** Task 5의 actionRequested를 사용한다. 자기 WIP 저장은 SetWip, busy는 SetBusy, 쪽지는 Note, 확인은 AckInbox를 요청한다. 서버 이벤트 전 UI를 수신 성공 상태로 확정하지 않는다.
 
-- [ ] **1. `tst_panels.qml`에 자기 WIP만 편집 가능, 빈 WIP 삭제, 쪽지 빈 문자열 거부, 80/120 code point 경계, `<b>과제</b>`가 태그 아닌 글자로 표시, busy 중 새 항목이 패널을 자동으로 열지 않음, busy 해제도 자동 개봉하지 않음, offline 전송 비활성, 키보드로 열기·닫기·포커스 복귀를 테스트한다.**
-- [ ] **2. `ctest --test-dir build -R panels --output-on-failure`로 실패를 확인한다.**
-- [ ] **3. 패널과 입력을 구현한다.** 기존 개발 감성을 유지하고 WIP·busy·ping 표현을 쓴다. 문자열은 plain text이며 trim과 code point 계산을 공통 Protocol 검증에 맞춘다. QApplication과 QSystemTrayIcon의 ‘펫 메뉴 열기’를 키보드 진입점으로 제공한다. 실제 메뉴·입력을 열었을 때만 편집 포커스를 받고 Escape/닫기로 이전 상태에 복귀한다. 선물·쪽지 개수와 확인 동작을 제공하고 기본 소리는 넣지 않는다. 서버가 보낸 상황 문구를 표시한다.
-- [ ] **4. 테스트와 실제 한글 입력기 조합 입력을 확인한다.** 입력 도중 저장이 조기 실행되거나 한글이 잘리지 않는지 macOS에서 검사한다. Linux 실제 입력기 검사는 완성본을 보여준 뒤 Task 8에서 반복한다.
-- [ ] **5. `git add desktop tests` 후 `git commit -m "feat: add shared WIP notes and quiet busy inbox"`한다.**
+- [x] **1. `tst_panels.qml`에 자기 WIP만 편집 가능, 빈 WIP 삭제, 쪽지 빈 문자열 거부, 80/120 code point 경계, `<b>과제</b>`가 태그 아닌 글자로 표시, busy 중 새 항목이 패널을 자동으로 열지 않음, busy 해제도 자동 개봉하지 않음, offline 전송 비활성, 키보드로 열기·닫기·포커스 복귀를 테스트한다.**
+- [x] **2. `ctest --test-dir build -R panels --output-on-failure`로 실패를 확인한다.**
+- [x] **3. 패널과 입력을 구현한다.** 기존 개발 감성을 유지하고 WIP·busy·ping 표현을 쓴다. 문자열은 plain text이며 trim과 code point 계산을 공통 Protocol 검증에 맞춘다. QApplication과 QSystemTrayIcon의 ‘펫 메뉴 열기’를 키보드 진입점으로 제공한다. 실제 메뉴·입력을 열었을 때만 편집 포커스를 받고 Escape/닫기로 이전 상태에 복귀한다. 선물·쪽지 개수와 확인 동작을 제공하고 기본 소리는 넣지 않는다. 서버가 보낸 상황 문구를 표시한다.
+- [x] **4. 테스트와 실제 한글 입력기 조합 입력을 확인한다.** 입력 도중 저장이 조기 실행되거나 한글이 잘리지 않는지 macOS에서 검사한다. Linux 실제 입력기 검사는 완성본을 보여준 뒤 Task 8에서 반복한다.
+- [x] **5. `git add desktop tests` 후 `git commit -m "feat: add shared WIP notes and quiet busy inbox"`한다.**
 
 ### Task 7: 기기 연결 UI, 안전한 자동 접속과 복구
 

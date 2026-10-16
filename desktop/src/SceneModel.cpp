@@ -16,6 +16,13 @@ QVariantList SceneModel::peers() const
     return result;
 }
 QVariantMap SceneModel::lastEvent() const { return m_lastEvent; }
+int SceneModel::textLength(const QString& text) const { return int(text.trimmed().toUcs4().size()); }
+QString SceneModel::normalizedText(const QString& text) const { return text.trimmed(); }
+bool SceneModel::textValid(const QString& name,const QString& text) const
+{
+    if(name!="setWip" && name!="note") return false;
+    return isValidCommand({"validation",name=="setWip"?Action::SetWip:Action::Note,"target",text,false});
+}
 QString SceneModel::localPeerId() const { return m_localPeerId; }
 void SceneModel::setLocalPeerId(const QString& id)
 {

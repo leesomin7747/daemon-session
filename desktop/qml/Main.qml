@@ -18,6 +18,10 @@ Item {
     property string caption: ""
     property var previousPositions: ({})
     property string menuPeerId: ""
+    property string panelKind: ""
+    property string panelPeerId: ""
+    property string returnMenuPeerId: ""
+    readonly property bool localOnline: model && petFor(model.localPeerId)!==null && petFor(model.localPeerId).peer.reachable
     readonly property bool menuOpen: menuPeerId!==""
     function petFor(id) {
         for(var i=0;i<pets.count;i++) { var p=pets.itemAt(i); if(p && p.peer.id===id) return p }
@@ -35,6 +39,7 @@ Item {
             }
         }
         if(menuLoader.item) result.push(Qt.rect(menuLoader.x,menuLoader.y,menuLoader.width,menuLoader.height))
+        if(panelLoader.item) result.push(Qt.rect(panelLoader.x,panelLoader.y,panelLoader.width,panelLoader.height))
         interactiveRegions=result
         if(nativeOverlay) nativeOverlay.setInteractiveRegions(result)
     }
@@ -51,6 +56,7 @@ Item {
     }
     function playEvent() {
         var e=model.lastEvent; if(!e.eventId) return
+        if(panelLoader.item && panelLoader.item.acceptEvent(e)) { caption=e.caption; effectTimer.restart() }
         var p=petFor(e.targetId); if(!p) return
         if(e.queued) { Qt.callLater(syncRegions); return }
         if(["setBusy","setWip","ackInbox","note"].indexOf(e.action)>=0) return
@@ -63,14 +69,33 @@ Item {
     }
     function closeMenu() {
         if(!menuOpen) return
-        menuPeerId=""; if(nativeOverlay) nativeOverlay.setEditorActive(false)
+        menuPeerId=""; if(nativeOverlay && panelKind==="") nativeOverlay.setEditorActive(false)
         Qt.callLater(syncRegions)
     }
     function openMenu(id) {
         if(!petFor(id)) return
+        panelKind=""; panelPeerId=""; returnMenuPeerId=""
         menuPeerId=id
         Qt.callLater(function() { syncRegions(); if(nativeOverlay) nativeOverlay.setEditorActive(true)
             if(menuLoader.item) menuLoader.item.focusFirst() })
+    }
+    function openPanel(kind,id) {
+        if(!petFor(id) || ["wip","note","inbox"].indexOf(kind)<0) return
+        if(kind==="inbox" && id!==model.localPeerId) return
+        if(kind==="note" && id===model.localPeerId) return
+        if(menuOpen) returnMenuPeerId=menuPeerId
+        menuPeerId=""; panelPeerId=id; panelKind=kind
+        Qt.callLater(function() {
+            syncRegions(); if(nativeOverlay) nativeOverlay.setEditorActive(true)
+            if(panelLoader.item) panelLoader.item.focusFirst()
+        })
+    }
+    function closePanel(returnToMenu) {
+        var previous=returnMenuPeerId
+        panelKind=""; panelPeerId=""; returnMenuPeerId=""
+        if(returnToMenu && previous!=="") { openMenu(previous); return }
+        if(nativeOverlay) nativeOverlay.setEditorActive(false)
+        Qt.callLater(syncRegions)
     }
     onWidthChanged: Qt.callLater(syncRegions)
     onHeightChanged: Qt.callLater(syncRegions)
@@ -80,8 +105,9 @@ Item {
         target: scene.model
         function onEventAboutToApply() { scene.capturePositions() }
         function onLastEventChanged() { scene.playEvent() }
-        function onSceneReset() { scene.stopEffects(); scene.closeMenu() }
+        function onSceneReset() { scene.stopEffects(); scene.closePanel(false); scene.closeMenu() }
         function onPeersChanged() { Qt.callLater(scene.syncRegions) }
+        function onActionRejected(code) { if(panelLoader.item) panelLoader.item.fail(code) }
     }
     Repeater {
         id: pets; model: scene.model?scene.model.peers.length:0
@@ -92,8 +118,8 @@ Item {
             tint: index===0?"#bad8ba":"#e2b5a2"
             reducedMotion: scene.reducedMotion; suspendIdle: scene.effectKind!==""
             stageWidth: scene.width
-            onPressed: scene.openMenu(peer.id)
-            onInboxPressed: scene.openMenu(peer.id)
+            onPressed: scene.openPanel("wip",peer.id)
+            onInboxPressed: scene.openPanel(localPeer?"inbox":"wip",peer.id)
             onGeometryChanged: scene.syncRegions()
         }
         onItemAdded: Qt.callLater(scene.syncRegions)
@@ -152,7 +178,43 @@ Item {
             onMotionToggled: scene.reducedMotion=!scene.reducedMotion
             onActionChosen: function(action,busy) { scene.model.requestAction(action,scene.menuPeerId,"",busy); scene.closeMenu() }
             onQuitRequested: Qt.quit()
+            onPanelRequested: function(kind) { scene.openPanel(kind,scene.menuPeerId) }
         }
         onLoaded: Qt.callLater(scene.syncRegions)
+    }
+    Loader {
+        id: panelLoader; active: scene.panelKind!==""; z: 11
+        width: Math.min(350,scene.width-24); height: Math.min(260,Math.max(128,scene.height-122))
+        x: Math.max(12,Math.min(scene.width-width-12,scene.petFor(scene.panelPeerId)?scene.petFor(scene.panelPeerId).x:12))
+        y: Math.max(0,scene.height-116-height-6)
+        sourceComponent: scene.panelKind==="wip"?wipComponent:scene.panelKind==="note"?noteComponent:inboxComponent
+        onLoaded: Qt.callLater(scene.syncRegions)
+    }
+    readonly property var panelPeer: petFor(panelPeerId)?petFor(panelPeerId).peer:({id:"",wip:"",busy:false,reachable:false,inbox:[]})
+    Component {
+        id: wipComponent
+        WipPanel {
+            peer: scene.panelPeer; model: scene.model; localPeer: scene.model && scene.panelPeerId===scene.model.localPeerId; localOnline: scene.localOnline
+            onClosed: scene.closePanel(true)
+            onNavigate: function(kind) { if(kind==="menu") scene.openMenu(scene.panelPeerId); else scene.openPanel(kind,scene.panelPeerId) }
+            onActionChosen: function(action,text,busy) { scene.model.requestAction(action,scene.panelPeerId,text,busy) }
+        }
+    }
+    Component {
+        id: noteComponent
+        NoteComposer {
+            peer: scene.panelPeer; model: scene.model; localOnline: scene.localOnline
+            onClosed: scene.closePanel(true)
+            onConfirmed: scene.closePanel(false)
+            onActionChosen: function(action,text,busy) { scene.model.requestAction(action,scene.panelPeerId,text,busy) }
+        }
+    }
+    Component {
+        id: inboxComponent
+        InboxPanel {
+            peer: scene.panelPeer; localOnline: scene.localOnline
+            onClosed: scene.closePanel(true)
+            onActionChosen: function(action,text,busy) { scene.model.requestAction(action,scene.panelPeerId,text,busy) }
+        }
     }
 }

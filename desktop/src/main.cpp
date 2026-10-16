@@ -1,7 +1,8 @@
 #include "OverlayWindow.h"
 #include "SceneModel.h"
+#include "DesktopTray.h"
 #include <QCommandLineParser>
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QRandomGenerator>
@@ -11,7 +12,8 @@
 int main(int argc,char** argv)
 {
     qputenv("QT_QUICK_CONTROLS_STYLE","Basic");
-    QGuiApplication app(argc,argv);
+    QApplication app(argc,argv);
+    app.setQuitOnLastWindowClosed(false);
     QCoreApplication::setApplicationName("Daemon Session — Local Preview");
 #ifdef Q_OS_MAC
     app.setFont(QFont("Apple SD Gothic Neo"));
@@ -40,6 +42,7 @@ int main(int argc,char** argv)
         Command command{QUuid::createUuid().toString(QUuid::WithoutBraces),action,target,text,busy};
         const auto result=applyCommand(state,actor,command,copy,[](int n){return QRandomGenerator::global()->bounded(n);});
         if(result.event) {state=result.state; model.applyEvent(*result.event);}
+        else if(!result.error.isEmpty()) model.actionRejected(result.error);
     };
     QObject::connect(&model,&SceneModel::actionRequested,&app,[&](Action action,PeerId target,QString text,bool busy) {
         apply(model.localPeerId(),action,target,text,busy);
@@ -51,6 +54,15 @@ int main(int argc,char** argv)
     window.setSource(QUrl("qrc:/desktop/Main.qml"));
     if(window.status()!=QQuickView::Ready) return 1;
     QObject::connect(window.engine(),&QQmlEngine::quit,&app,&QCoreApplication::quit);
+    DesktopTray tray;
+    const auto openPanel=[&](const QString& kind,const QString& peer) {
+        QMetaObject::invokeMethod(window.rootObject(),"openPanel",Q_ARG(QVariant,QVariant(kind)),Q_ARG(QVariant,QVariant(peer)));
+    };
+    QObject::connect(&tray,&DesktopTray::ownPetRequested,&app,[&]{openPanel("wip",model.localPeerId());});
+    QObject::connect(&tray,&DesktopTray::friendPetRequested,&app,[&]{openPanel("wip","b");});
+    QObject::connect(&tray,&DesktopTray::inboxRequested,&app,[&]{openPanel("inbox",model.localPeerId());});
+    QObject::connect(&tray,&DesktopTray::quitRequested,&app,&QCoreApplication::quit);
+    if(!parser.isSet("smoke-test")) tray.show();
     QTimer incoming;
     if(parser.isSet("demo-receive")) {
         incoming.setInterval(5000);

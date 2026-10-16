@@ -1,4 +1,5 @@
 #include "SessionFixture.h"
+#include "WireProtocol.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTest>
@@ -6,6 +7,15 @@
 class ProtocolTest : public QObject {
     Q_OBJECT
 private slots:
+    void textLeadingBomRoundTrip() {
+        const QString text=QString(QChar(0xfeff))+"작업"+QChar(0xfeff);
+        const auto c=decodeCommand(encodeCommand(command(Action::SetWip,"a",text)));
+        QVERIFY(c); QCOMPARE(c->text,text);
+        const SessionEvent event{"e","r","epoch",1,Action::SetWip,"a","a","저장","",0.25,false,text,false};
+        const auto e=decodeEvent(encodeEvent(event)); QVERIFY(e); QCOMPARE(e->text,text);
+        const auto frame=decodeFrame(encodeFrame({"session.command","r",QJsonDocument::fromJson(encodeCommand(command(Action::SetWip,"a",text))).object()}));
+        QVERIFY(frame); QCOMPARE(frame->body["text"].toString(),text);
+    }
     void commandRoundTrip()
     {
         auto input = command(Action::SetBusy, "a", {}, true);

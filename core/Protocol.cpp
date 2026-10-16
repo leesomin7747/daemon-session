@@ -65,14 +65,19 @@ std::optional<QJsonObject> readObject(const QByteArray& bytes)
     Q_UNUSED(decoded);
     if (utf8.hasError()) return {};
     QJsonParseError error;
-    const auto document = QJsonDocument::fromJson(bytes, &error);
+    // Escaped U+FEFF is retained by Qt's JSON string parser; a raw leading
+    // UTF-8 BOM inside a string is otherwise consumed as an encoding marker.
+    auto escaped=bytes;
+    escaped.replace(QByteArray::fromHex("efbbbf"),"\\ufeff");
+    const auto document = QJsonDocument::fromJson(escaped, &error);
     if (error.error != QJsonParseError::NoError || !document.isObject()) return {};
     return document.object();
 }
 
 QByteArray writeObject(const QJsonObject& object)
 {
-    const auto bytes = QJsonDocument(object).toJson(QJsonDocument::Compact);
+    auto bytes = QJsonDocument(object).toJson(QJsonDocument::Compact);
+    bytes.replace(QByteArray::fromHex("efbbbf"),"\\ufeff");
     return bytes.size() <= MaxFrameBytes ? bytes : QByteArray();
 }
 
