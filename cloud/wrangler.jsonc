@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "daemon-session",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {"OFFICE_ID": "private-office-v1"},
+  "durable_objects": {"bindings": [{"name": "OFFICE", "class_name": "Office"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["Office"]}],
+  "observability": {"enabled": false}
+}

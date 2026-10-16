@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Daemon Session
+Comment=A desktop space for working together through daemons
+Comment[ko]=각자 작업하면서 데몬과 함께하는 데스크톱 공간
+Exec=env QT_QPA_PLATFORM=wayland daemon-session
+TryExec=daemon-session
+Terminal=false
+Categories=Network;Office;
+StartupWMClass=daemon-session

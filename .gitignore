@@ -17,6 +17,8 @@ CMakeUserPresets.json
 .env.*
 !.env.example
 *.pem
+!tests/fixtures/localhost-cert.pem
+!tests/fixtures/localhost-key.pem
 *.key
 *.sqlite
 *.sqlite-*
@@ -27,3 +29,13 @@ CMakeUserPresets.json
 *.log
 credentials.json
 device-token*
+
+# Cloudflare/local package tooling
+node_modules/
+cloud/dist/
+cloud/.wrangler/
+.wrangler/
+cloud/worker-configuration.d.ts
+.dev.vars
+.dev.vars.*
+__pycache__/
