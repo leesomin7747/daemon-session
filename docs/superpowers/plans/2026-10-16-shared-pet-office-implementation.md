@@ -144,11 +144,11 @@ Task 2 구현 결정: 상태가 가득 차면 기존 항목을 버리지 않고 
 
 Task 3 구현 결정: 승인에도 동일한 10분 만료를 적용하도록 호환 가능한 기본 시간 인자를 추가한다. Broker의 clock을 주입할 때 생성·요청·승인 모두 같은 clock 값을 전달한다. inviterForRequest는 Broker가 join.requested를 발급자에게 보낼 수 있게 하는 조회다. 발급자당 하나의 현재 초대·신청자당 하나의 대기 요청만 두며 새 초대는 이전 코드와 대기를 취소한다. 연결 해제는 페어 접근 권한과 관련 초대를 제거하되 기기 식별 토큰은 유지한다. Broker는 해제 직전에 멤버를 조회하고 연결 해제 후 두 소켓의 세션 권한·캐시를 즉시 폐기해야 한다.
 
-- [ ] **1. `tst_pairing`에 영속 재접속, 10분 만료, 사용한 코드 재사용 거부, 발급자 승인 전 페어 미성립, 셋째 기기 거부, 다른 기기의 승인 거부, 연결 해제 후 권한 폐기, DB에 원문 token/invite 없음 테스트를 작성한다.**
-- [ ] **2. `ctest --test-dir build -R pairing --output-on-failure`를 실행해 실패를 확인한다.**
-- [ ] **3. Qt SQL의 prepared statement와 트랜잭션으로 PairStore를 구현한다.** 토큰·초대는 시스템 난수로 32바이트 생성하고 해시를 저장한다. 요청·승인의 인증과 페어 최대 인원 제약을 DB 트랜잭션으로 보장한다. DB 열기 실패 시 인증을 우회하지 않고 시작 실패를 반환한다.
-- [ ] **4. 테스트 DB를 닫고 다시 열어도 authenticate와 pair 조회가 유지되는지 포함해 같은 테스트를 통과시킨다.**
-- [ ] **5. `git add server tests CMakeLists.txt` 후 `git commit -m "feat: persist private two-device pairing"`한다.**
+- [x] **1. `tst_pairing`에 영속 재접속, 10분 만료, 사용한 코드 재사용 거부, 발급자 승인 전 페어 미성립, 셋째 기기 거부, 다른 기기의 승인 거부, 연결 해제 후 권한 폐기, DB에 원문 token/invite 없음 테스트를 작성한다.**
+- [x] **2. `ctest --test-dir build -R pairing --output-on-failure`를 실행해 실패를 확인한다.**
+- [x] **3. Qt SQL의 prepared statement와 트랜잭션으로 PairStore를 구현한다.** 토큰·초대는 시스템 난수로 32바이트 생성하고 해시를 저장한다. 요청·승인의 인증과 페어 최대 인원 제약을 DB 트랜잭션으로 보장한다. DB 열기 실패 시 인증을 우회하지 않고 시작 실패를 반환한다.
+- [x] **4. 테스트 DB를 닫고 다시 열어도 authenticate와 pair 조회가 유지되는지 포함해 같은 테스트를 통과시킨다.**
+- [x] **5. `git add server tests CMakeLists.txt` 후 `git commit -m "feat: persist private two-device pairing"`한다.**
 
 ### Task 4: WebSocket 서버와 단일 순서의 세션 이벤트
 
