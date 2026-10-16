@@ -16,7 +16,7 @@ Rope/Lure는 모델의 최종 위치를 즉시 확정하고 약 1.8초의 표시
 
 제품 장면은 높이 380 논리 px의 투명 하단 창이다. 기존 probe는 기본 180px를 유지한다. 화면의 availableGeometry보다 높아지지 않으며, 메뉴가 작은 영역에 맞지 않으면 스크롤할 수 있다. 코드 편집기 배경과 목업 송신자 선택기는 넣지 않았다.
 
-아바타·이름·busy 책상·선물 버튼·열린 메뉴의 실제 변환 좌표로 input mask를 갱신한다. 말풍선·밧줄·비행기는 장식 영역으로 입력을 가로채지 않는다. 펫을 직접 누르거나 `--menu`로 명시적으로 열 때만 키보드 입력 모드로 바꾼다. Tab/Shift+Tab, Enter, Escape로 메뉴를 조작한다. 전역 키보드 진입점인 트레이 메뉴는 후속 패널 단계다.
+아바타·이름·busy 책상·선물 버튼·열린 메뉴의 실제 변환 좌표로 input mask를 갱신한다. 말풍선·밧줄·비행기는 장식 영역으로 입력을 가로채지 않는다. 펫을 직접 누르거나 `--menu`로 명시적으로 열 때만 키보드 입력 모드로 바꾼다. Tab/Shift+Tab으로 이동하면 선택된 항목이 보이도록 스크롤하고, Space로 실행하며 Escape로 닫는다. 전역 키보드 진입점인 트레이 메뉴는 후속 패널 단계다.
 
 실제 Cocoa에서 데몬 클릭으로 메뉴가 열리고 접근성 트리에 일곱 행동이 표시되는 것을 확인했다. 별도 프로세스의 작업창을 전면에 둔 채 수신 전후 `isActive`와 TextInput의 `ab` 입력 유지도 확인했다. 미리보기의 `--demo-receive`는 5초마다 로컬 수신 이벤트를 만들며, 수신 전후 overlay 활성 여부·앱 활성 여부·revision만 기록한다. 화면 내용·키 입력·메모 본문은 기록하지 않는다.
 
@@ -36,7 +36,7 @@ PET_EXISTING_PREVIEW_LOG=/tmp/daemon-pet-focus.log ./build/tests/tst_petwindow r
 
 ## 자동 검사와 시각 확인
 
-`ctest --preset dev`에 SceneModel, Qt Quick Test, 실제 OverlayWindow mask의 100%/125% 조건, 앱 smoke를 추가했다. 두 QML 장면의 같은 이벤트·문구·정규화 위치, 이동 후 자리 유지, snapshot 중단, reduced motion, busy 조용한 쌓기, 소품 경계·메뉴 동작을 검사한다. native mask 검사와 별도로 저장된 픽셀에서 메뉴 종료 후 두 펫의 색상이 유지되는 것도 검사한다.
+`ctest --preset dev`에 SceneModel, Qt Quick Test, 실제 OverlayWindow mask의 100%/125% 조건, 앱 smoke를 추가했다. 두 QML 장면의 같은 이벤트·문구·정규화 위치, 이동 후 자리 유지, snapshot 중단, reduced motion, busy 조용한 쌓기, 소품 경계·메뉴 동작을 검사한다. 높이 380/250에서 실제 Tab·Shift+Tab으로 모든 메뉴 항목의 포커스가 뷰포트 안에 유지되는지, Space로 선택 행동을 실행하는지도 검사한다. native mask 검사와 별도로 저장된 픽셀에서 메뉴 종료 후 두 펫의 색상이 유지되는 것도 검사한다.
 
 offscreen 플랫폼은 native mask를 적용하지 못한다는 Qt 경고를 낼 수 있다. 해당 검사는 논리 영역의 회귀 검사이며 실제 클릭 통과 판정은 Cocoa 검증과 구별한다. optional capture와 native focus 검사에는 각 실행 조건이 있다.
 

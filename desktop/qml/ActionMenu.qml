@@ -14,8 +14,17 @@ FocusScope {
     Accessible.name: localPeer?"내 데몬 메뉴":"친구 데몬 메뉴"
     Keys.onEscapePressed: closed()
     function focusFirst() { closeButton.forceActiveFocus() }
+    function reveal(control) {
+        var top=control.mapToItem(content,0,0).y
+        var bottom=top+control.height
+        var offset=viewport.contentY
+        if(top<offset) offset=top
+        else if(bottom>offset+viewport.height) offset=bottom-viewport.height
+        viewport.contentY=Math.max(0,Math.min(offset,Math.max(0,viewport.contentHeight-viewport.height)))
+    }
     Rectangle { anchors.fill: parent; color: "#303d33"; radius: 9; border.color: "#617368" }
     Flickable {
+        id: viewport
         anchors.fill: parent; anchors.margins: 12; clip: true
         contentWidth: width; contentHeight: content.height
         boundsBehavior: Flickable.StopAtBounds
@@ -23,11 +32,12 @@ FocusScope {
         Column {
             id: content; width: parent.width; spacing: 8
             Item {
-                width: parent.width; height: 24
+                width: parent.width; height: 30
                 Text { text: menu.localPeer?"나":"친구"; color: "#eeeae1"; font.pixelSize: 13; font.weight: Font.DemiBold }
                 Button {
-                    id: closeButton; objectName: "menuClose"; x: parent.width-34; y: -6; width: 34; height: 30
+                    id: closeButton; objectName: "menuClose"; x: parent.width-34; width: 34; height: 30
                     text: "닫기"; font.pixelSize: 11; onClicked: menu.closed()
+                    onActiveFocusChanged: if(activeFocus) menu.reveal(this)
                     background: Rectangle { radius: 4; color: closeButton.hovered?"#455a49":"transparent"; border.color: closeButton.activeFocus?"#bad8ba":"transparent" }
                     contentItem: Text { text: closeButton.text; color: "#eeeae1"; font: closeButton.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
@@ -52,6 +62,7 @@ FocusScope {
                         enabled: menu.peer.reachable && (menu.localPeer || !menu.peer.busy || ["coffee","energy"].indexOf(modelData.action)>=0)
                         text: modelData.label; font.pixelSize: 11
                         Accessible.name: text
+                        onActiveFocusChanged: if(activeFocus) menu.reveal(this)
                         onClicked: menu.actionChosen(modelData.action,menu.localPeer?!menu.peer.busy:false)
                         background: Rectangle { radius: 5; color: actionButton.hovered?"#455a49":"#26352b"; border.color: actionButton.activeFocus?"#bad8ba":"#526657"; opacity: actionButton.enabled?1:0.4 }
                         contentItem: Row {
@@ -63,6 +74,7 @@ FocusScope {
                 }
             }
             CheckBox {
+                onActiveFocusChanged: if(activeFocus) menu.reveal(this)
                 text: "움직임 줄이기"; checked: menu.reducedMotion; onClicked: menu.motionToggled()
                 palette.windowText: "#eeeae1"; palette.text: "#eeeae1"; palette.highlight: "#bad8ba"
                 font.pixelSize: 11
@@ -71,6 +83,7 @@ FocusScope {
                 spacing: 12
                 Text { text: "로컬 미리보기"; color: "#c0d0c1"; font.pixelSize: 10 }
                 Button { visible: menu.localPeer; text: "종료"; flat: true; width: 48; height: 22; font.pixelSize: 10
+                    onActiveFocusChanged: if(activeFocus) menu.reveal(this)
                     palette.buttonText: "#eeeae1"; onClicked: menu.quitRequested() }
             }
         }

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtTest
 import Daemon 1.0
 import "../../desktop/qml" as Desktop
@@ -110,6 +111,34 @@ Item {
             var ping=findChild(a,"action_ping"), coffee=findChild(a,"action_coffee")
             verify(ping!==null && coffee!==null)
             compare(ping.enabled,false); compare(coffee.enabled,true)
+        }
+        function test_keyboardFocusStaysVisible_data() {
+            return [{tag:"normal",height:380},{tag:"short",height:250}]
+        }
+        function test_keyboardFocusStaysVisible(data) {
+            a.height=data.height
+            a.openMenu("b"); tryCompare(a,"menuOpen",true)
+            var close=findChild(a,"menuClose"), rope=findChild(a,"action_rope")
+            verify(close!==null && rope!==null)
+            verify(waitForRendering(rope)); tryCompare(close,"activeFocus",true)
+            var viewport=rope.parent
+            while(viewport && typeof viewport.contentY==="undefined") viewport=viewport.parent
+            verify(viewport!==null)
+            function checkVisible() {
+                var focused=a.Window.window.activeFocusItem
+                verify(focused!==null)
+                var p=focused.mapToItem(viewport,0,0)
+                verify(p.y>=-0.1 && p.y+focused.height<=viewport.height+0.1,
+                    "Focused control must be visible: "+focused.objectName+" y="+p.y)
+                verify(viewport.contentY>=0 && viewport.contentY<=Math.max(0,viewport.contentHeight-viewport.height))
+            }
+            for(var i=0;i<8;i++) { keyClick(Qt.Key_Tab); wait(0); checkVisible() }
+            verify(viewport.contentY>0,"Lower controls require scrolling")
+            for(i=0;i<8;i++) { keyClick(Qt.Key_Tab,Qt.ShiftModifier); wait(0); checkVisible() }
+            compare(close.activeFocus,true)
+            keyClick(Qt.Key_Tab); keyClick(Qt.Key_Tab)
+            tryCompare(rope,"activeFocus",true)
+            keyClick(Qt.Key_Space); tryCompare(a,"menuOpen",false)
         }
     }
 }
