@@ -28,7 +28,7 @@ A desktop space where interactions with daemons make working apart feel like wor
 
 ## 개발 방향
 
-Qt 6, QML/C++, CMake와 KDE LayerShellQt 연동을 초기 기술 후보로 검토합니다. 실제 macOS와 KDE Wayland에서 투명 표시, 클릭 통과, 키보드 포커스와 배율 대응을 검증한 뒤 제품 구현을 진행합니다.
+Qt 6, QML/C++, CMake와 KDE LayerShellQt 연동을 초기 기술 후보로 검토합니다. 사용자 결정에 따라 macOS에서 먼저 제품을 완성하고, 완성본을 보여준 뒤 KDE Wayland 실기 검증을 진행합니다. Linux 대응 코드는 유지하되 실제 검증 전에는 Linux 지원을 확정하지 않습니다. 남은 macOS 창 처리 검사는 제품 구현 중 이어갑니다.
 
 ## 오버레이 probe 실행
 

@@ -4,7 +4,7 @@
 
 **Goal:** macOS와 KDE Plasma Wayland의 두 컴퓨터에서 승인한 펫 오버레이, WIP, busy, 장난, 선물과 쪽지를 함께 사용하는 MVP를 만든다.
 
-**Architecture:** 우선 Qt Quick 오버레이를 양쪽 실제 환경에서 검증한다. 검증이 통과하면 Qt 공통 라이브러리의 상태 규칙과 JSON 프로토콜을 데스크톱 앱과 작은 WebSocket 서버가 공유한다. 서버가 행동 순서·최종 위치·랜덤 문구를 확정하고 두 클라이언트는 같은 결과를 표시한다.
+**Architecture:** macOS 오버레이를 기준으로 먼저 제품을 구현한다. Qt 공통 라이브러리의 상태 규칙과 JSON 프로토콜을 데스크톱 앱과 작은 WebSocket 서버가 공유한다. 서버가 행동 순서·최종 위치·랜덤 문구를 확정하고 두 클라이언트는 같은 결과를 표시한다. KDE Wayland 대응 코드는 유지하며 실제 Linux 검증은 macOS 완성본을 남자친구에게 보여준 뒤 수행한다.
 
 **Tech Stack:** 검증 후보는 Qt 6.8 이상, QML/Qt Quick Controls, C++17, CMake 3.24 이상, Ninja, Qt WebSockets, Qt SQL/SQLite, Qt Test/Qt Quick Test다. Qt Widgets는 메뉴바·트레이의 키보드 진입점을 위한 QSystemTrayIcon에만 사용한다. Linux에서 LayerShellQt, 기기 자격증명 저장에 QtKeychain을 사용한다. 이는 작성자의 추천이며 OS 검증 전 확정된 동작을 보장하는 선택이 아니다.
 
@@ -52,7 +52,9 @@
 
 ## 첫 검증과 완료 기준
 
-Task 1을 양쪽 실제 GUI 환경에서 통과하기 전 Task 2 이후의 제품 구현을 진행하지 않는다. 테스트용으로 X11/XWayland로 바꾼 결과를 KDE Wayland 네이티브 검증으로 기록하지 않는다. 현재 작업 환경에서 Linux GUI나 필요한 도구에 접근할 수 없으면 실행 가능한 probe와 확인 절차를 준비하고, 실제 Linux 결과가 필요한 지점을 보고한다.
+2026-10-16 사용자 변경 승인: macOS 완성본을 먼저 만들어 남자친구에게 보여주고, KDE Wayland 실기 검증은 그 뒤로 미룬다. 사용자는 macOS에서 클릭이 잘 된다고 보고했다. 기존의 “양쪽 실제 GUI 통과 전 Task 2 금지” 조건은 해제한다. Task 1의 미확인 항목은 기록에 유지하고 제품 구현을 진행할 수 있다. macOS에서 남은 창 순서·Dock·작업 영역 검사는 제품 구현 중 계속 확인한다. 공개 전에는 Mac에서 두 클라이언트로 연결·동기화를 검증하고, Linux 지원 확정은 실제 KDE Wayland 검증 뒤로 둔다.
+
+테스트용으로 X11/XWayland로 바꾼 결과를 KDE Wayland 네이티브 검증으로 기록하지 않는다. 남자친구에게 미리 실행이나 검증을 요청하지 않는다. Linux에서 차이가 드러나면 해당 플랫폼 창 처리와 패키징을 보완한다.
 
 통과 기준은 투명 표시, 일반 작업창 위 유지, 펫만 클릭 가능, 빈 곳 클릭 통과, 수신 시 작업창 포커스 유지, 필요할 때만 글 입력 가능, 125% 배율에서 클릭 영역 일치다. 실패하면 실패 항목과 실제 화면 증거를 남겨 해당 플랫폼 창 처리만 수정한다. 해결되지 않으면 프레임워크 결정을 다시 검토하고 검증되지 않은 지원을 선언하지 않는다.
 
@@ -115,7 +117,7 @@ Task 1을 양쪽 실제 GUI 환경에서 통과하기 전 Task 2 이후의 제�
 - [ ] **1. 실패할 기하 테스트를 쓴다.** `tst_overlaygeometry::clickRegionFollowsPet`는 이동 전 영역이 빠지고 새 영역만 포함되는지, `boundsAt125Percent`는 1.25 배율에서도 논리 좌표의 클릭 영역과 시각 위치가 일치하는지, `projectXStaysInBounds`는 x=0/1에서 margin 밖으로 나가지 않는지 검증한다.
 - [ ] **2. CMake/CTest 최소 구성을 추가하고 테스트를 실행한다.** `cmake -S . -B build -G Ninja -DBUILD_TESTING=ON`, `cmake --build build`, `ctest --test-dir build -R overlaygeometry --output-on-failure`. 최초에는 함수 미구현으로 실패해야 한다. Qt가 없으면 이를 먼저 보고하고 공식 패키지로 설치하며 임의 다운로드 스크립트를 실행하지 않는다.
 - [ ] **3. 최소 probe와 창 구현을 만든다.** 투명 QQuickWindow와 동적으로 갱신되는 QWindow::setMask 영역을 사용한다. macOS는 비활성 표시 창에서 시작하고, Linux는 QWindow 생성 후 표시 전에 LayerShellQt::Window::get으로 Bottom/Left/Right 앵커·LayerTop·exclusive zone 0·KeyboardInteractivityNone을 설정한다. 편집을 직접 연 경우에만 OnDemand 등 입력 가능한 모드로 전환한다. useLayerShell()은 현재 소스에서 deprecated이므로 새 코드에 넣지 않는다. setMask는 플랫폼 hint이므로 실제 클릭 통과를 반드시 확인한다.
-- [ ] **4. 두 컴퓨터에서 probe를 실행하고 결과를 기록한다.** 펫 클릭, 빈 곳 클릭, 자동 수신 중 타 앱 타이핑 유지, WIP 입력 후 타 앱으로 복귀, 100%/125%, Dock·패널 주변, 작업 영역 변경을 검사한다. 실제 OS/Qt/LayerShellQt 버전과 캡처를 overlay.md에 기록하고 실패 항목을 남긴다. 양쪽 통과 전 다음 Task로 넘어가지 않는다.
+- [ ] **4. 실제 GUI 검증 결과를 기록한다.** 펫 클릭, 빈 곳 클릭, 자동 수신 중 타 앱 타이핑 유지, WIP 입력 후 타 앱으로 복귀, 100%/125%, Dock·패널 주변, 작업 영역 변경을 검사한다. 실제 OS/Qt/LayerShellQt 버전과 캡처를 overlay.md에 기록하고 실패 항목을 남긴다. 사용자 승인에 따라 Linux 실기 부분은 완성본을 보여준 뒤 Task 8에서 수행하며, 이 미실행 상태는 다음 Task를 막지 않는다.
 - [ ] **5. 개발 기준을 기존 리포에 보존한다.** 기존 .gitignore와 docs/mockups/shared-session.html을 유지하고 README에 실제로 검증된 설치·빌드·실행 명령을 추가한다. 로컬 저장소와 origin이 이미 있으므로 Git을 다시 초기화하지 않는다. `git add README.md CMakeLists.txt CMakePresets.json probes desktop tests docs/verification` 후 `git commit -m "chore: establish verified desktop overlay baseline"`한다. lifecycle hook은 실행하지 않는다.
 
 ### Task 2: 공통 상태 규칙과 문구 동기화
@@ -175,7 +177,7 @@ Task 1을 양쪽 실제 GUI 환경에서 통과하기 전 Task 2 이후의 제�
 - [ ] **1. `tst_panels.qml`에 자기 WIP만 편집 가능, 빈 WIP 삭제, 쪽지 빈 문자열 거부, 80/120 code point 경계, `<b>과제</b>`가 태그 아닌 글자로 표시, busy 중 새 항목이 패널을 자동으로 열지 않음, busy 해제도 자동 개봉하지 않음, offline 전송 비활성, 키보드로 열기·닫기·포커스 복귀를 테스트한다.**
 - [ ] **2. `ctest --test-dir build -R panels --output-on-failure`로 실패를 확인한다.**
 - [ ] **3. 패널과 입력을 구현한다.** 기존 개발 감성을 유지하고 WIP·busy·ping 표현을 쓴다. 문자열은 plain text이며 trim과 code point 계산을 공통 Protocol 검증에 맞춘다. QApplication과 QSystemTrayIcon의 ‘펫 메뉴 열기’를 키보드 진입점으로 제공한다. 실제 메뉴·입력을 열었을 때만 편집 포커스를 받고 Escape/닫기로 이전 상태에 복귀한다. 선물·쪽지 개수와 확인 동작을 제공하고 기본 소리는 넣지 않는다. 서버가 보낸 상황 문구를 표시한다.
-- [ ] **4. 테스트와 실제 한글 입력기 조합 입력을 확인한다.** 입력 도중 저장이 조기 실행되거나 한글이 잘리지 않는지 양쪽 OS에서 검사한다.
+- [ ] **4. 테스트와 실제 한글 입력기 조합 입력을 확인한다.** 입력 도중 저장이 조기 실행되거나 한글이 잘리지 않는지 macOS에서 검사한다. Linux 실제 입력기 검사는 완성본을 보여준 뒤 Task 8에서 반복한다.
 - [ ] **5. `git add desktop tests` 후 `git commit -m "feat: add shared WIP notes and quiet busy inbox"`한다.**
 
 ### Task 7: 기기 연결 UI, 안전한 자동 접속과 복구
@@ -198,7 +200,7 @@ Task 1을 양쪽 실제 GUI 환경에서 통과하기 전 Task 2 이후의 제�
 
 - [ ] **1. 두 클라이언트의 전체 시나리오 테스트를 작성한다.** 첫 연결·동시 접속·WIP·busy·선물과 쪽지 대기·같은 랜덤 말풍선·양방향 이동 후 위치 유지·offline 거부·재접속 중복 없음·연결 해제를 한 흐름에서 검증한다.
 - [ ] **2. `ctest --test-dir build -R twopeers --output-on-failure`를 실행하고 통합에서 드러난 실패만 수정한다.**
-- [ ] **3. 모든 검사를 실행한다.** `cmake --build build`, `ctest --test-dir build --output-on-failure` 후 macOS와 실제 KDE Wayland에서 같은 시나리오를 수행한다. 30분 동안 idle/busy/상호작용 상태의 CPU·메모리 변화, 포커스 방해와 배율 클릭 불일치를 기록한다. 컴파일 성공을 실제 Wayland 동작 통과로 대신하지 않는다.
+- [ ] **3. Mac 완성본을 검증하고 공개 후 Linux 실기를 수행한다.** `cmake --build build`, `ctest --test-dir build --output-on-failure` 후 macOS에서 두 클라이언트로 같은 시나리오를 수행한다. 30분 동안 idle/busy/상호작용 상태의 CPU·메모리 변화, 포커스 방해와 배율 클릭 불일치를 기록한다. Mac 완성본을 남자친구에게 보여준 뒤 실제 KDE Wayland 125%에서 오버레이·한글 조합 입력·같은 시나리오를 반복하고 필요한 플랫폼 수정을 한다. 컴파일 성공을 실제 Wayland 동작 통과로 대신하지 않는다.
 - [ ] **4. 설치 산출물과 실행 문서를 준비한다.** macOS .app에 필요한 Qt 라이브러리를 포함하고 Linux는 우선 정확한 EndeavourOS 환경에서 실행할 바이너리·의존성 목록·desktop entry를 제공한다. 자동 업데이트는 후속 작업으로 둔다. Mac 서명·공증 자격증명과 서버 호스트가 없으면 미완료 항목으로 명시하며 우회 설정을 권하지 않는다. 외부 서버는 TLS 종료와 지속 SQLite 저장소가 있는 단일 프로세스로 배포할 수 있게 문서화하되 호스트·비용 결정 없이 배포하지 않는다.
 - [ ] **5. 최종 사용 증거와 의존성 고지를 검토하고 `git add packaging THIRD_PARTY_NOTICES.md README.md docs tests CMakeLists.txt` 후 `git commit -m "feat: validate and package the first paired desktop release"`한다.**
 
