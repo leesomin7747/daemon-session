@@ -27,8 +27,9 @@ Item {
         }
         function control(name) { var item=findChild(scene,name); verify(item!==null,name+" must exist"); return item }
         function click(name) { var item=control(name); verify(waitForRendering(item)); mouseClick(item); wait(0) }
-        function deliver(action,actor,target,revision,text,busy,queued) {
-            fixtures.deliver(model,{eventId:"e"+revision,requestId:"r"+revision,epoch:"epoch-1",revision:String(revision),
+        function deliver(action,actor,target,revision,text,busy,queued,requestId) {
+            var intent=requests.count>0 && actor===model.localPeerId?requests.signalArguments[requests.count-1][4]:""
+            fixtures.deliver(model,{eventId:"e"+revision,requestId:requestId||intent||"r"+revision,epoch:"epoch-1",revision:String(revision),
                 action:action,actorId:actor,targetId:target,caption:"확정된 서버 안내",bubble:"",finalX:target==="a"?0.25:0.75,
                 text:text||"",busy:busy||false,queued:queued||false})
             wait(0)
@@ -81,7 +82,7 @@ Item {
             compare(requests.signalArguments[0][1],"b")
             compare(requests.signalArguments[0][2],"커피 마시고 쉬자 😀\n<b>메모</b>")
             compare(scene.panelKind,"note"); compare(control("sendNote").enabled,false)
-            model.actionRejected("offline"); wait(0)
+            model.requestFailed(requests.signalArguments[0][4],"offline"); wait(0)
             compare(control("sendNote").enabled,true)
             verify(control("noteEditor").text.indexOf("커피")>=0)
             verify(control("panelStatus").text.indexOf("연결")>=0)
@@ -216,6 +217,35 @@ Item {
             keyClick(Qt.Key_Z); wait(0); checkCaret()
             compare(editor.text,"a\n".repeat(10)+"z")
             compare(requests.count,0)
+        }
+        function test_unrelatedReceiptCannotCloseDraft() {
+            if(!open("note","b")) return
+            control("noteEditor").text="같은 내용"; click("sendNote")
+            compare(requests.count,1)
+            deliver("note","a","b",1,"같은 내용",false,false,"unrelated-request")
+            compare(scene.panelKind,"note")
+            compare(control("sendNote").enabled,false)
+        }
+        function test_reconnectSnapshotKeepsDraft() {
+            if(!open("note","b")) return
+            control("noteEditor").text="다시 연결돼도 남겨요 😀"
+            fixtures.panelState(model,true,false)
+            wait(0); compare(scene.panelKind,"note")
+            compare(control("noteEditor").text,"다시 연결돼도 남겨요 😀")
+            compare(control("sendNote").enabled,false)
+            fixtures.panelState(model,true,true); wait(0)
+            compare(control("noteEditor").text,"다시 연결돼도 남겨요 😀")
+            compare(control("sendNote").enabled,true)
+        }
+        function test_lateFailureCannotUnlockNewRequest() {
+            if(!open("note","b")) return
+            control("noteEditor").text="초안"; click("sendNote")
+            var first=requests.signalArguments[0][4]
+            model.requestFailed(first,"timeout"); wait(0); compare(control("sendNote").enabled,true)
+            click("sendNote"); compare(requests.count,2)
+            var second=requests.signalArguments[1][4]; verify(first!==second)
+            model.requestFailed(first,"offline"); wait(0); compare(control("sendNote").enabled,false)
+            model.requestFailed(second,"offline"); wait(0); compare(control("sendNote").enabled,true)
         }
     }
 }

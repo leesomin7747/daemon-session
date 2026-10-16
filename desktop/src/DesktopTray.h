@@ -12,6 +12,7 @@ signals:
     void ownPetRequested();
     void friendPetRequested();
     void inboxRequested();
+    void connectionRequested();
     void quitRequested();
 private:
     QMenu m_menu;

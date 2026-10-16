@@ -3,15 +3,29 @@
 #include <QJsonObject>
 #include <QUuid>
 SceneModel::SceneModel(QObject* p):QObject(p) { qRegisterMetaType<Action>(); }
-QVariantList SceneModel::peers() const
+QVariantMap SceneModel::peer(const QString& id) const {return peerStates().value(id).toMap();}
+void SceneModel::setTransportConnected(bool connected) {if(m_transportConnected==connected) return; m_transportConnected=connected; emit peersChanged();}
+bool SceneModel::showLocalOffline() const {return m_showLocalOffline;}
+void SceneModel::setShowLocalOffline(bool show) {if(m_showLocalOffline==show) return; m_showLocalOffline=show; emit showLocalOfflineChanged(); emit peersChanged();}
+void SceneModel::resetSession() {emit sceneReset(); m_state={}; m_lastEvent.clear(); emit peersChanged(); emit lastEventChanged();}
+QVariantMap SceneModel::peerStates() const
 {
-    QVariantList result;
+    QVariantMap result; int index=0;
     for (const auto& p:m_state.peers) {
         QVariantList inbox;
         for (const auto& item:p.inbox) inbox.append(QVariantMap{{"eventId",item.eventId},
             {"kind",actionName(item.kind)},{"text",item.text}});
-        result.append(QVariantMap{{"id",p.id},{"reachable",p.reachable},{"busy",p.busy},
-            {"wip",p.wip},{"x",p.x},{"pinned",p.pinned},{"inbox",inbox}});
+        result.insert(p.id,QVariantMap{{"id",p.id},{"reachable",m_transportConnected && p.reachable},{"busy",p.busy},
+            {"wip",p.wip},{"x",p.x},{"pinned",p.pinned},{"inbox",inbox},{"tint",index++==0?"#bad8ba":"#e2b5a2"}});
+    }
+    if(result.isEmpty() && !m_localPeerId.isEmpty()) result.insert(m_localPeerId,QVariantMap{{"id",m_localPeerId},{"reachable",false},{"busy",false},{"wip",""},{"x",0.25},{"pinned",true},{"inbox",QVariantList{}},{"tint","#bad8ba"}});
+    return result;
+}
+QVariantList SceneModel::peers() const {
+    QVariantList result;
+    for(const auto& value:peerStates()) {
+        const auto p=value.toMap();
+        if(p["reachable"].toBool() || (p["id"].toString()==m_localPeerId && m_showLocalOffline)) result.append(p);
     }
     return result;
 }
@@ -27,7 +41,7 @@ QString SceneModel::localPeerId() const { return m_localPeerId; }
 void SceneModel::setLocalPeerId(const QString& id)
 {
     if (id==m_localPeerId) return;
-    m_localPeerId=id; emit localPeerIdChanged();
+    m_localPeerId=id; emit localPeerIdChanged(); emit peersChanged();
 }
 void SceneModel::replaceSnapshot(const SessionState& state)
 {
@@ -59,21 +73,24 @@ void SceneModel::applyEvent(const SessionEvent& e)
     m_lastEvent=QJsonDocument::fromJson(encodeEvent(e)).object().toVariantMap();
     emit peersChanged(); emit lastEventChanged();
 }
-void SceneModel::requestAction(const QString& name,const QString& target,const QString& text,bool busy)
+QString SceneModel::newRequestId() const {return QUuid::createUuid().toString(QUuid::WithoutBraces);}
+void SceneModel::requestAction(const QString& name,const QString& target,const QString& text,bool busy,const QString& requestId)
 {
+    const auto request=requestId.isEmpty()?newRequestId():requestId;
+    const auto reject=[&](const QString& code){emit actionRejected(code); emit requestFailed(request,code);};
     std::optional<Action> action;
     for (int i=0;i<11;++i) if (actionName(static_cast<Action>(i))==name) action=static_cast<Action>(i);
     if (!action || !m_state.peers.contains(m_localPeerId) || !m_state.peers.contains(target)) {
-        emit actionRejected("invalid"); return;
+        reject("invalid"); return;
     }
     const bool self=*action==Action::SetBusy || *action==Action::SetWip || *action==Action::AckInbox;
-    if (self!=(target==m_localPeerId)) { emit actionRejected("forbidden"); return; }
-    if (!m_state.peers[m_localPeerId].reachable || (!self && !m_state.peers[target].reachable)) {
-        emit actionRejected("offline"); return;
+    if (self!=(target==m_localPeerId)) { reject("forbidden"); return; }
+    if (!m_transportConnected || !m_state.peers[m_localPeerId].reachable || (!self && !m_state.peers[target].reachable)) {
+        reject("offline"); return;
     }
     if (!self && m_state.peers[target].busy && *action!=Action::Coffee && *action!=Action::Energy
-        && *action!=Action::Note) { emit actionRejected("busy"); return; }
-    Command command{QUuid::createUuid().toString(QUuid::WithoutBraces),*action,target,text,busy};
-    if (!isValidCommand(command)) { emit actionRejected("invalid"); return; }
-    emit actionRequested(*action,target,text.trimmed(),busy);
+        && *action!=Action::Note) { reject("busy"); return; }
+    Command command{request,*action,target,text,busy};
+    if (!isValidCommand(command)) { reject("invalid"); return; }
+    emit actionRequested(*action,target,text.trimmed(),busy,request);
 }

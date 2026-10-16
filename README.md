@@ -6,7 +6,7 @@ A desktop space where interactions with daemons make working apart feel like wor
 
 ## 현재 단계
 
-네이티브 오버레이 검증용 앱, 공통 상태 규칙·JSON codec, SQLite 기반 비공개 페어링·기기 인증과 로컬 WebSocket 서버를 구현했습니다. 실제 소켓으로 두 기기의 인증·승인·실시간 동기화·재접속을 검증합니다. QML 펫 장면은 로컬 미리보기로 실행할 수 있으며, 제품 UI와 네트워크의 연결 및 KDE Wayland 실기 검증은 남아 있습니다.
+오버레이 제품 UI와 실제 WebSocket 클라이언트를 연결했습니다. 초대·명시적 승인, WIP·쪽지·선물, 자동 재접속과 OS 비밀 저장소를 실제 로컬 서버로 검증합니다. 인터넷 WSS 배포·설치 산출물·두 컴퓨터 사용과 KDE Wayland 실기 검증은 남아 있습니다.
 
 첫 MVP는 두 사람의 비공개 세션을 대상으로 하며, 더 많은 데몬을 위한 확장은 이후에 다룹니다. 첫 지원 목표는 macOS와 KDE Plasma의 Wayland 환경입니다.
 
@@ -35,7 +35,7 @@ Qt 6, QML/C++, CMake와 KDE LayerShellQt 연동을 초기 기술 후보로 검�
 macOS에서 확인한 환경은 macOS 26.4 arm64, Qt 6.11.2, CMake 4.4.4, Ninja 1.13.2입니다. Apple Command Line Tools와 Homebrew가 설치된 상태에서:
 
 ```sh
-brew install qtbase qtdeclarative qtwebsockets cmake ninja
+brew install qtbase qtdeclarative qtwebsockets qtkeychain cmake ninja
 cmake --preset dev -DCMAKE_PREFIX_PATH="$(brew --prefix)"
 cmake --build --preset dev
 ctest --preset dev
@@ -45,7 +45,7 @@ open build/probes/overlay/overlay_probe.app
 EndeavourOS/KDE Wayland용 구성은 아래와 같습니다. **아직 해당 컴퓨터에서 빌드·실행하지 않은 절차**입니다. 시스템의 패키지 버전을 일관되게 유지한 상태에서 실행하세요.
 
 ```sh
-sudo pacman -S --needed base-devel cmake ninja qt6-base qt6-declarative qt6-websockets qt6-wayland layer-shell-qt
+sudo pacman -S --needed base-devel cmake ninja qt6-base qt6-declarative qt6-websockets qt6-wayland qtkeychain-qt6 layer-shell-qt
 cmake --preset dev
 cmake --build --preset dev
 ctest --preset dev
@@ -72,7 +72,7 @@ probe에는 이동 가능한 두 테스트 캐릭터, 뒤 창 클릭 카운터, 
 
 모든 쓰기는 prepared statement와 `BEGIN IMMEDIATE` 트랜잭션으로 처리합니다. DB 제약이 기기당 한 페어·페어당 두 슬롯을 보장하며, 실패한 승인은 부분 연결을 남기지 않습니다. 기기 인증과 페어 정보는 DB를 다시 열어도 유지됩니다. 저장소 열기·스키마·SQL 오류는 예외로 처리하며 임시 메모리 인증으로 우회하지 않습니다. 파일 DB는 소유자만 읽고 쓸 수 있게 만듭니다.
 
-연결 해제는 양쪽의 페어 멤버십과 관련 초대를 폐기합니다. 기기 자체의 인증 자격은 유지되지만 예전 세션에 접근할 권한은 사라지며, 다시 연결하려면 새 초대와 승인이 필요합니다. Broker는 인증된 소켓의 PeerId를 사용하고 해제 시 두 소켓의 권한과 세션 캐시를 즉시 폐기합니다. 클라이언트 비밀 저장소와 승인 UI는 후속 단계입니다.
+연결 해제는 양쪽의 페어 멤버십과 관련 초대를 폐기합니다. 기기 자체의 인증 자격은 유지되지만 예전 세션에 접근할 권한은 사라지며, 다시 연결하려면 새 초대와 승인이 필요합니다. Broker는 인증된 소켓의 PeerId를 사용하고 해제 시 두 소켓의 권한과 세션 캐시를 즉시 폐기합니다. 제품 클라이언트도 OS 비밀 저장소와 명시적 승인 UI를 사용합니다.
 
 정상적인 거절은 빈 문자열/optional로, 저장소 장애는 비밀 값을 포함하지 않는 `std::runtime_error`로 전달합니다. `approveJoin`의 시간 인자는 테스트/서버 clock을 전달할 수 있고 생략하면 현재 UTC 시각을 사용합니다. `inviterForRequest`는 후속 Broker가 참여 요청을 정확한 발급자에게 전달할 때 사용하는 만료 검사 포함 조회입니다.
 
@@ -94,19 +94,19 @@ ctest --test-dir build -R broker --output-on-failure
 ctest --preset dev
 ```
 
-서버 실행 파일의 재시작과 실제 QWebSocket 두 개를 사용합니다. 제품 UI의 실제 서버 연결, OS 비밀 저장소, 인터넷 WSS 및 실제 두 컴퓨터 검증은 아직 후속 작업입니다.
+서버 실행 파일의 재시작과 실제 QWebSocket 두 개를 사용합니다. 제품 UI의 실제 서버 연결과 OS 비밀 저장소는 구현했습니다. 인터넷 WSS와 실제 두 컴퓨터 검증은 후속 작업입니다.
 
 
 ## QML 펫 장면 미리보기
 
 ```sh
 cmake --build --preset dev
-open build/desktop/daemon-session.app
+open build/desktop/daemon-session.app --args --preview
 ```
 
-Linux에서는 `QT_QPA_PLATFORM=wayland ./build/desktop/daemon-session`로 실행하는 구성이며 아직 실기 검증 전입니다. 지금은 고정된 두 기기의 **로컬 미리보기**입니다. 실제 친구에게 접속하거나 데이터를 전송하지 않습니다. 펫을 누르면 WIP가 열립니다. 내 WIP는 80자까지 수정·삭제하고, 친구 WIP는 읽으며 장난·선물 메뉴나 120자 쪽지로 이어집니다. 내 WIP에서 busy를 바꾸고 받은 것을 확인합니다. 움직임 줄이기와 종료는 ‘움직임·앱 메뉴’에 있습니다. 실제 Client 연결은 다음 단계입니다.
+Linux에서는 `QT_QPA_PLATFORM=wayland ./build/desktop/daemon-session --preview`로 실행하는 구성이며 아직 실기 검증 전입니다. `--preview`는 고정된 두 기기의 **로컬 미리보기**입니다. 실제 친구에게 접속하거나 데이터를 전송하지 않습니다. 펫을 누르면 WIP가 열립니다. 내 WIP는 80자까지 수정·삭제하고, 친구 WIP는 읽으며 장난·선물 메뉴나 120자 쪽지로 이어집니다. 내 WIP에서 busy를 바꾸고 받은 것을 확인합니다. 움직임 줄이기와 종료는 ‘움직임·앱 메뉴’에 있습니다. 옵션 없이 실행하면 실제 서버 연결 화면을 사용합니다.
 
-`--menu`로 키보드에서 내 메뉴를 직접 열고, `--reduced-motion`으로 움직임을 끈 채 시작할 수 있습니다. macOS에서 옵션을 전달하려면 `open build/desktop/daemon-session.app --args --menu`를 사용하세요. 메뉴는 Tab/Shift+Tab으로 이동하고 Space로 실행하며 Escape로 닫습니다. 애니메이션은 최종 위치를 바꾸지 않으며 서버 이벤트의 같은 문구를 표시합니다.
+`--menu`로 키보드에서 내 메뉴를 직접 열고, `--reduced-motion`으로 움직임을 끈 채 시작할 수 있습니다. macOS에서 옵션을 전달하려면 `open build/desktop/daemon-session.app --args --preview --menu`를 사용하세요. 메뉴는 Tab/Shift+Tab으로 이동하고 Space로 실행하며 Escape로 닫습니다. 애니메이션은 최종 위치를 바꾸지 않으며 서버 이벤트의 같은 문구를 표시합니다.
 
 `ctest --test-dir build -R pet --output-on-failure`는 상태 모델, 실제 QML 장면, 네이티브 입력 mask와 실행 smoke를 검사합니다. 장면·배율·포커스의 실제 결과는 [QML 펫 장면 검증 기록](docs/verification/pet-scene.md)에 있습니다.
 
@@ -116,4 +116,28 @@ Linux에서는 `QT_QPA_PLATFORM=wayland ./build/desktop/daemon-session`로 실�
 
 ```sh
 ctest --test-dir build -R panels --output-on-failure
+```
+
+## 실제 데스크톱 연결
+
+옵션 없이 앱을 열면 ‘같은 세션에 접속’ 화면이 나옵니다. 개발 서버를 실행한 뒤 같은 Mac에서 두 프로필로 검증할 수 있습니다. 두 명령은 각각 별도 터미널에서 실행합니다.
+
+```sh
+./build/desktop/daemon-session.app/Contents/MacOS/daemon-session --server ws://127.0.0.1:8787/ --profile a
+./build/desktop/daemon-session.app/Contents/MacOS/daemon-session --server ws://127.0.0.1:8787/ --profile b
+```
+
+한쪽에서 코드를 만들고 다른 쪽에서 입력한 뒤, 발급자가 참여를 승인합니다. 이후 같은 서버·프로필로 실행하면 기존 기기로 자동 접속하며, 연결이 끊기면 최대 15초 간격으로 재시도합니다. 같은 프로필은 동시에 하나만 실행합니다. 연결 화면은 메뉴바/트레이나 내 행동 메뉴에서도 엽니다.
+
+기기 토큰은 QtKeychain을 통해 macOS Keychain / Linux OS 비밀 저장소에만 저장합니다. 비밀 저장소 오류를 파일 저장으로 우회하지 않습니다. QSettings에는 서버 주소·자동 접속·offline 내 데몬 표시 설정만 둡니다. 평문 WS는 literal loopback IP에서만 허용하며 외부 주소는 인증서 검증을 통과하는 WSS가 필요합니다. 현재 개발 서버는 외부 WSS 서비스를 제공하지 않습니다.
+
+재접속은 snapshot으로 현재 상태를 복구하고 열린 메모 초안을 유지합니다. 끊긴 요청은 재발송하지 않습니다. 전달 여부가 불확실하면 안내하고, 사용자가 재시도할 때 새 요청으로 보냅니다. ‘친구와 연결 해제’는 확인 후 서버 권한을 폐기하고 OS 자격증명을 지웁니다. 서버 해제에 실패하면 자격증명을 유지해 다시 시도할 수 있습니다.
+
+검증 결과와 제한은 [클라이언트 검증 기록](docs/verification/client.md)에 있습니다.
+
+```sh
+ctest --test-dir build -R 'credentials|client|connection_ui' --output-on-failure
+# 실제 Cocoa + OS Keychain 선택 검사 (해당 테스트가 만든 키만 정리)
+DAEMON_KEYCHAIN_NATIVE=1 ./build/tests/tst_credentials nativeOsRoundTrip
+DAEMON_KEYCHAIN_NATIVE=1 ./build/tests/tst_client nativeKeychainRelaunch nativeQmlSaveReceivesItsAuthoritativeEvent
 ```

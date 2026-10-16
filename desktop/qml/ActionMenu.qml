@@ -6,11 +6,13 @@ FocusScope {
     required property var peer
     property bool localPeer: false
     property bool reducedMotion: false
+    property bool hasClient: false
     signal actionChosen(string action,bool busy)
     signal motionToggled()
     signal closed()
     signal quitRequested()
     signal panelRequested(string kind)
+    signal connectionRequested()
     Accessible.role: Accessible.Pane
     Accessible.name: localPeer?"내 데몬 메뉴":"친구 데몬 메뉴"
     Keys.onEscapePressed: closed()
@@ -87,11 +89,12 @@ FocusScope {
             }
             Row {
                 spacing: 12
-                Text { text: "로컬 미리보기"; color: "#c0d0c1"; font.pixelSize: 10 }
+                Text { text: menu.hasClient?"같은 세션":"로컬 미리보기"; color: "#c0d0c1"; font.pixelSize: 10 }
                 Button { visible: menu.localPeer; text: "종료"; flat: true; width: 48; height: 22; font.pixelSize: 10
                     onActiveFocusChanged: if(activeFocus) menu.reveal(this)
                     palette.buttonText: "#eeeae1"; onClicked: menu.quitRequested() }
             }
+            PanelButton { visible: menu.localPeer && menu.hasClient; width: parent.width; text: "세션 연결"; onActiveFocusChanged: if(activeFocus) menu.reveal(this); onClicked: menu.connectionRequested() }
         }
     }
 }

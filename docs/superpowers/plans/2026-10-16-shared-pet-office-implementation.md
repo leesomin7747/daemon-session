@@ -194,11 +194,13 @@ Task 4 구현 결정: 평문 WS는 loopback에만 바인딩하며 브라우저 O
 
 **Interfaces:** `CredentialStore::load() -> void`, `save(const DeviceCredential&) -> void`, `clear() -> void`와 완료/오류 signals; `SessionClient::connectTo(const QUrl&) -> void`, `send(const Command&) -> void`, `requestControl(const QString& operation, const QJsonObject& body) -> QString`, `disconnectAndForget() -> void`, snapshotReceived/eventReceived/noticeReceived/connectionChanged/controlResult/error signals. requestControl은 requestId를 반환하고 controlResult는 그 id와 response body를 전달한다.
 
-- [ ] **1. 가짜 secret backend와 loopback 서버로 실패 테스트를 작성한다.** `credentialRoundTrip`, `secretStoreFailureHasNoPlaintextFallback`, `relaunchReusesPairedIdentity`, `staleSocketCannotSend`, `duplicateEventAppliedOnce`, `revisionGapRequestsSnapshot`, `badTlsCertificateIsNotIgnored`, `unpairStopsReconnect`, `localPetRemainsOptionalOffline`를 검증한다.
-- [ ] **2. `ctest --test-dir build -R 'credentials|client' --output-on-failure`로 실패를 확인한다.**
-- [ ] **3. QtKeychain 기반 CredentialStore와 SessionClient를 구현한다.** 비밀 저장소에 실패하면 재시도 가능한 오류를 표시하고 QSettings·파일에 토큰을 평문으로 저장하지 않는다. non-secret 설정만 QSettings를 사용한다. 첫 연결은 코드 만들기·입력·발급자의 승인으로 구성한다. 재접속은 1/2/4/8/15초 상한과 jitter로 하며, epoch와 revision으로 오래되거나 중복된 이벤트를 버린다. URL query·로그에 토큰을 넣지 않는다. 프로덕션은 WSS만 허용하고 TLS 검증을 우회하지 않는다.
-- [ ] **4. 공통 codec→Broker→Client→SceneModel을 연결해 두 클라이언트 테스트를 통과시킨다.** 수신 전에 끊긴 쪽지는 실패로 표시하고 자동 재발송하지 않는다. offline 내 펫 표시 설정은 기기에 저장한다.
-- [ ] **5. `git add desktop tests` 후 `git commit -m "feat: connect paired desktops with secure automatic reconnect"`한다.**
+- [x] **1. 가짜 secret backend와 loopback 서버로 실패 테스트를 작성한다.** `credentialRoundTrip`, `secretStoreFailureHasNoPlaintextFallback`, `relaunchReusesPairedIdentity`, `staleSocketCannotSend`, `duplicateEventAppliedOnce`, `revisionGapRequestsSnapshot`, `badTlsCertificateIsNotIgnored`, `unpairStopsReconnect`, `localPetRemainsOptionalOffline`를 검증한다.
+- [x] **2. `ctest --test-dir build -R 'credentials|client' --output-on-failure`로 실패를 확인한다.**
+- [x] **3. QtKeychain 기반 CredentialStore와 SessionClient를 구현한다.** 비밀 저장소에 실패하면 재시도 가능한 오류를 표시하고 QSettings·파일에 토큰을 평문으로 저장하지 않는다. non-secret 설정만 QSettings를 사용한다. 첫 연결은 코드 만들기·입력·발급자의 승인으로 구성한다. 재접속은 1/2/4/8/15초 상한과 jitter로 하며, epoch와 revision으로 오래되거나 중복된 이벤트를 버린다. URL query·로그에 토큰을 넣지 않는다. 프로덕션은 WSS만 허용하고 TLS 검증을 우회하지 않는다.
+- [x] **4. 공통 codec→Broker→Client→SceneModel을 연결해 두 클라이언트 테스트를 통과시킨다.** 수신 전에 끊긴 쪽지는 실패로 표시하고 자동 재발송하지 않는다. offline 내 펫 표시 설정은 기기에 저장한다.
+- [x] **5. `git add desktop tests` 후 `git commit -m "feat: connect paired desktops with secure automatic reconnect"`한다.**
+
+Task7 구현 결정: 제품 기본 실행은 실제 연결, 고정 fixture는 `--preview`로 분리한다. 기기 토큰은 endpoint/profile별 QtKeychain에만 저장하며 QSettings는 비밀 없는 설정만 보관한다. SceneModel 의도에 requestId를 추가하고 패널은 같은 ID의 확정 이벤트/오류만 처리한다. 같은 identity의 snapshot에는 열린 초안을 유지한다. 소켓 요청은 단절 후 재전송하지 않으며 전달 불확실 응답은 안내하고 snapshot으로 복구한다. 현재 검증은 실제 loopback 서버와 macOS Keychain이며 외부 WSS/설치/두 컴퓨터는 Task8이다.
 
 ### Task 8: 실제 두 컴퓨터 사용과 설치 산출물
 

@@ -41,14 +41,16 @@ private slots:
     void trayProvidesExplicitEntryAndQuit() {
         DesktopTray tray;
         const auto actions=tray.menu()->actions();
-        QCOMPARE(actions.size(),5);
+        QCOMPARE(actions.size(),6);
         QCOMPARE(actions[0]->text(),QString("내 펫 메뉴 열기"));
         QCOMPARE(actions[1]->text(),QString("친구 펫 메뉴 열기"));
         QCOMPARE(actions[2]->text(),QString("받은 것"));
+        QCOMPARE(actions[3]->text(),QString("세션 연결"));
         QSignalSpy own(&tray,&DesktopTray::ownPetRequested), peer(&tray,&DesktopTray::friendPetRequested),
-            inbox(&tray,&DesktopTray::inboxRequested), quit(&tray,&DesktopTray::quitRequested);
-        actions[0]->trigger(); actions[1]->trigger(); actions[2]->trigger(); actions[4]->trigger();
+            inbox(&tray,&DesktopTray::inboxRequested), quit(&tray,&DesktopTray::quitRequested),connection(&tray,&DesktopTray::connectionRequested);
+        actions[0]->trigger(); actions[1]->trigger(); actions[2]->trigger(); actions[3]->trigger(); actions[5]->trigger();
         QCOMPARE(own.size(),1); QCOMPARE(peer.size(),1); QCOMPARE(inbox.size(),1); QCOMPARE(quit.size(),1);
+        QCOMPARE(connection.size(),1);
     }
     void composingTextCanBeSavedWithOneClick_data() {
         QTest::addColumn<QString>("kind"); QTest::addColumn<QString>("peer");

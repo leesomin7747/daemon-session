@@ -7,12 +7,12 @@ PanelFrame {
     property bool localPeer: false
     property bool localOnline: false
     property string submittedText: ""
-    signal actionChosen(string action,string text,bool busy)
+    signal actionChosen(string action,string text,bool busy,string requestId)
     signal navigate(string kind)
     title: "WIP · "+(localPeer?"나":"친구")
     initialFocusItem: editorLoader.item?editorLoader.item.editor:friendActions
     function acceptEvent(e) {
-        if(!pending || e.action!=="setWip" || e.actorId!==peer.id || e.targetId!==peer.id || e.text!==submittedText) return false
+        if(!pending || e.requestId!==pendingRequestId || e.action!=="setWip" || e.actorId!==peer.id || e.targetId!==peer.id || e.text!==submittedText) return false
         pending=false; statusText=e.caption
         if(editorLoader.item) editorLoader.item.text=e.text
         return true
@@ -20,8 +20,8 @@ PanelFrame {
     function submitWip() {
         var field=editorLoader.item
         if(!field || field.inputMethodComposing || pending || !localOnline || !model.textValid("setWip",field.text)) return
-        submittedText=model.normalizedText(field.text); pending=true; statusText="저장 중…"
-        actionChosen("setWip",field.text,false)
+        submittedText=model.normalizedText(field.text); pendingRequestId=model.newRequestId(); pending=true; statusText="저장 중…"
+        actionChosen("setWip",field.text,false,pendingRequestId)
     }
     Loader {
         id: editorLoader; width: panel.bodyWidth; active: panel.localPeer
@@ -59,7 +59,7 @@ PanelFrame {
             id: friendActions; width: (parent.width-8)/2
             text: panel.localPeer?(panel.peer.busy?"busy 풀기":"busy"):"장난·선물"
             enabled: panel.localPeer?panel.localOnline:!panel.pending
-            onClicked: panel.localPeer?panel.actionChosen("setBusy","",!panel.peer.busy):panel.navigate("menu")
+            onClicked: panel.localPeer?panel.actionChosen("setBusy","",!panel.peer.busy,panel.model.newRequestId()):panel.navigate("menu")
         }
         PanelButton {
             objectName: "wipSecondary"; width: (parent.width-8)/2

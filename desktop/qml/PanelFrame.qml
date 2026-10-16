@@ -7,6 +7,7 @@ FocusScope {
     property string title: ""
     property string statusText: ""
     property bool pending: false
+    property string pendingRequestId: ""
     property Item initialFocusItem: closeButton
     readonly property real bodyWidth: content.width
     readonly property real viewportHeight: viewport.height
@@ -16,7 +17,7 @@ FocusScope {
     function focusFirst() { if(initialFocusItem) initialFocusItem.forceActiveFocus(Qt.OtherFocusReason) }
     function fail(code) {
         pending=false
-        statusText=code==="offline"?"연결을 확인한 뒤 다시 시도해주세요.":code==="busy"?"지금은 busy예요. 선물이나 쪽지를 건네보세요.":"처리하지 못했어요. 내용을 확인하고 다시 시도해주세요."
+        statusText=["connection_lost","timeout","delivery_unknown"].indexOf(code)>=0?"전달 여부를 확인하지 못했어요. 내용을 확인한 뒤 다시 시도해주세요.":code==="offline"?"연결을 확인한 뒤 다시 시도해주세요.":code==="busy"?"지금은 busy예요. 선물이나 쪽지를 건네보세요.":"처리하지 못했어요. 내용을 확인하고 다시 시도해주세요."
     }
     function reveal(item) {
         if(!item) return

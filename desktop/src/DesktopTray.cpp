@@ -11,6 +11,7 @@ DesktopTray::DesktopTray(QObject* parent):QObject(parent)
     add("내 펫 메뉴 열기",&DesktopTray::ownPetRequested);
     add("친구 펫 메뉴 열기",&DesktopTray::friendPetRequested);
     add("받은 것",&DesktopTray::inboxRequested);
+    add("세션 연결",&DesktopTray::connectionRequested);
     m_menu.addSeparator(); add("종료",&DesktopTray::quitRequested);
     QPixmap image(32,32); image.fill(Qt::transparent);
     QPainter painter(&image); painter.setRenderHint(QPainter::Antialiasing);
@@ -27,6 +28,6 @@ DesktopTray::DesktopTray(QObject* parent):QObject(parent)
 #ifdef Q_OS_MAC
     icon.setIsMask(true);
 #endif
-    m_icon.setIcon(icon); m_icon.setToolTip("Daemon Session · 로컬 미리보기"); m_icon.setContextMenu(&m_menu);
+    m_icon.setIcon(icon); m_icon.setToolTip("Daemon Session"); m_icon.setContextMenu(&m_menu);
 }
 void DesktopTray::show() { m_icon.show(); }
