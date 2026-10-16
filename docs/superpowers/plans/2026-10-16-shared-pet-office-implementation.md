@@ -214,7 +214,7 @@ Task7 구현 결정: 제품 기본 실행은 실제 연결, 고정 fixture는 `-
 - [ ] **4. 설치 산출물과 실행 문서를 준비한다.** macOS .app에 필요한 Qt 라이브러리를 포함하고 Linux는 우선 정확한 EndeavourOS 환경에서 실행할 바이너리·의존성 목록·desktop entry를 제공한다. 자동 업데이트는 후속 작업으로 둔다. Mac 서명·공증 자격증명과 서버 호스트가 없으면 미완료 항목으로 명시하며 우회 설정을 권하지 않는다. 외부 서버는 TLS 종료와 지속 SQLite 저장소가 있는 단일 프로세스로 배포할 수 있게 문서화하되 호스트·비용 결정 없이 배포하지 않는다.
 - [ ] **5. 최종 사용 증거와 의존성 고지를 검토하고 `git add packaging THIRD_PARTY_NOTICES.md README.md docs tests CMakeLists.txt` 후 `git commit -m "feat: validate and package the first paired desktop release"`한다.**
 
-Task8 배포 변경 승인(2026-10-17): 사용자는 무료 상시 운영을 위해 Cloudflare Workers + SQLite Durable Objects 이식을 선택했다. [보충 계획](2026-10-17-cloudflare-deployment.md)을 따르며 C++ 서버는 기준 구현으로 유지한다. 로컬 Worker와 실제 Qt/QML 두 프로세스·macOS 설치 이미지는 검증했다. 외부 계정 인증/배포, native30분 최종 기록 및 독립 리뷰는 진행 중이다. Linux 실기는 계속 유예한다. Developer ID가 없어 현재 산출물은 ad-hoc local build다.
+Task8 배포 변경 승인(2026-10-17): 사용자는 무료 상시 운영을 위해 Cloudflare Workers + SQLite Durable Objects 이식을 선택했다. [보충 계획](2026-10-17-cloudflare-deployment.md)을 따르며 C++ 서버는 기준 구현으로 유지한다. 로컬 Worker와 실제 Qt/QML 두 프로세스·macOS 설치 이미지는 검증했다. 독립 리뷰의 두 Important를 RED→GREEN으로 수정했고 Worker17/17·CTest20/20을 통과했다. 기본·움직임 줄이기 각각30분 기록을 남겼다. 외부 계정 인증/배포와 실제 두 컴퓨터 검증은 남아 있다. Linux 실기는 계속 유예한다. Developer ID가 없어 현재 산출물은 ad-hoc local build다.
 
 ## 계획 자체 검토
 
