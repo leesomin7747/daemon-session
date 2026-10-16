@@ -1,0 +1,29 @@
+# Local agent tooling and visual brainstorming session state
+.agents/skills/
+.codex/
+.superpowers/
+
+# Build output and personal IDE configuration
+build/
+out/
+CMakeUserPresets.json
+*.user
+.idea/
+.vscode/
+.DS_Store
+
+# Local credentials, runtime data, and logs
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+credentials.json
+device-token*
