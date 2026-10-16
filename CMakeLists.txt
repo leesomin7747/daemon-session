@@ -6,10 +6,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets Quick QuickControls2 QuickTest Test Sql Network WebSockets)
+include(CTest)
+option(DAEMON_BUILD_DESKTOP "Build desktop app and overlay probes" ON)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Sql Network WebSockets)
+if(BUILD_TESTING)
+    find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
+endif()
 add_subdirectory(core)
 add_subdirectory(server)
 
+if(DAEMON_BUILD_DESKTOP)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Gui Widgets Quick QuickControls2)
+if(BUILD_TESTING)
+    find_package(Qt6 6.8 REQUIRED COMPONENTS QuickTest)
+endif()
 add_library(daemon_overlay STATIC
     desktop/src/OverlayWindow.cpp
     desktop/src/OverlayWindow.h
@@ -24,8 +34,8 @@ endif()
 
 add_subdirectory(probes/overlay)
 add_subdirectory(desktop)
+endif()
 
-include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

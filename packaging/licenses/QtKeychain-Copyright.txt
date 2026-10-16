@@ -1,0 +1,3 @@
+Copyright (C) 2011-2015 Frank Osterfeld <frank.osterfeld@gmail.com>
+Source: qtkeychain 0.17.0 installed include/qt6keychain/keychain.h.
+Redistribution terms: QtKeychain-BSD-3-Clause.txt.

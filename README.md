@@ -6,7 +6,7 @@ A desktop space where interactions with daemons make working apart feel like wor
 
 ## 현재 단계
 
-오버레이 제품 UI와 실제 WebSocket 클라이언트를 연결했습니다. 초대·명시적 승인, WIP·쪽지·선물, 자동 재접속과 OS 비밀 저장소를 실제 로컬 서버로 검증합니다. 인터넷 WSS 배포·설치 산출물·두 컴퓨터 사용과 KDE Wayland 실기 검증은 남아 있습니다.
+오버레이 제품 UI와 실제 WebSocket 클라이언트를 연결했습니다. 초대·명시적 승인, WIP·쪽지·선물, 자동 재접속과 OS 비밀 저장소를 실제 로컬 서버로 검증합니다. Cloudflare용 서버와 macOS 로컬 설치 산출물을 준비했으며, 실제 외부 배포는 Cloudflare 계정 로그인 뒤 검증합니다. 두 물리 컴퓨터 사용과 KDE Wayland 실기 검증은 남아 있습니다.
 
 첫 MVP는 두 사람의 비공개 세션을 대상으로 하며, 더 많은 데몬을 위한 확장은 이후에 다룹니다. 첫 지원 목표는 macOS와 KDE Plasma의 Wayland 환경입니다.
 
@@ -140,4 +140,14 @@ ctest --test-dir build -R 'credentials|client|connection_ui' --output-on-failure
 # 실제 Cocoa + OS Keychain 선택 검사 (해당 테스트가 만든 키만 정리)
 DAEMON_KEYCHAIN_NATIVE=1 ./build/tests/tst_credentials nativeOsRoundTrip
 DAEMON_KEYCHAIN_NATIVE=1 ./build/tests/tst_client nativeKeychainRelaunch nativeQmlSaveReceivesItsAuthoritativeEvent
+```
+
+## 설치와 무료 Cloudflare 서버
+
+[macOS 번들/설치 이미지 만들기](packaging/README.md), [Cloudflare Workers + SQLite Durable Objects](cloud/README.md), [두 클라이언트 통합 검증](docs/verification/two-computers.md)을 참고하세요. 현재 설치 산출물은 arm64/macOS26 local build이며 정식 Developer ID 서명·공증은 하지 않았습니다. Linux 실행 검증은 유예합니다.
+
+```sh
+ctest --test-dir build -R 'twopeers|macos_bundle_tools' --output-on-failure
+# 실제 Cocoa의 장시간 선택 검사: 기본 Qt Test 5분 제한을 해당 실행에만 늘림
+QTEST_FUNCTION_TIMEOUT=1900000 DAEMON_TEST_NORMAL_MOTION=1 DAEMON_SOAK_SECONDS=1800 DAEMON_SOAK_OUTPUT=/tmp/daemon-session-soak.csv ./build/tests/tst_twopeers nativeThirtyMinuteSoak
 ```

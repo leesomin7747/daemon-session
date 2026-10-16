@@ -7,3 +7,4 @@ target_link_libraries(daemon_broker PUBLIC daemon_pairing Qt6::WebSockets)
 
 add_executable(daemon-session-server src/main.cpp)
 target_link_libraries(daemon-session-server PRIVATE daemon_broker)
+install(TARGETS daemon-session-server RUNTIME DESTINATION bin)

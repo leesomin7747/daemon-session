@@ -208,11 +208,13 @@ Task7 구현 결정: 제품 기본 실행은 실제 연결, 고정 fixture는 `-
 
 **Interfaces:** 기존 desktop/server executable과 모든 공통 API를 사용한다. `daemon-session` 앱과 `daemon-session-server` 실행 산출물을 만든다.
 
-- [ ] **1. 두 클라이언트의 전체 시나리오 테스트를 작성한다.** 첫 연결·동시 접속·WIP·busy·선물과 쪽지 대기·같은 랜덤 말풍선·양방향 이동 후 위치 유지·offline 거부·재접속 중복 없음·연결 해제를 한 흐름에서 검증한다.
-- [ ] **2. `ctest --test-dir build -R twopeers --output-on-failure`를 실행하고 통합에서 드러난 실패만 수정한다.**
+- [x] **1. 두 클라이언트의 전체 시나리오 테스트를 작성한다.** 첫 연결·동시 접속·WIP·busy·선물과 쪽지 대기·같은 랜덤 말풍선·양방향 이동 후 위치 유지·offline 거부·재접속 중복 없음·연결 해제를 한 흐름에서 검증한다.
+- [x] **2. `ctest --test-dir build -R twopeers --output-on-failure`를 실행하고 통합에서 드러난 실패만 수정한다.**
 - [ ] **3. Mac 완성본을 검증하고 공개 후 Linux 실기를 수행한다.** `cmake --build build`, `ctest --test-dir build --output-on-failure` 후 macOS에서 두 클라이언트로 같은 시나리오를 수행한다. 30분 동안 idle/busy/상호작용 상태의 CPU·메모리 변화, 포커스 방해와 배율 클릭 불일치를 기록한다. Mac 완성본을 남자친구에게 보여준 뒤 실제 KDE Wayland 125%에서 오버레이·한글 조합 입력·같은 시나리오를 반복하고 필요한 플랫폼 수정을 한다. 컴파일 성공을 실제 Wayland 동작 통과로 대신하지 않는다.
 - [ ] **4. 설치 산출물과 실행 문서를 준비한다.** macOS .app에 필요한 Qt 라이브러리를 포함하고 Linux는 우선 정확한 EndeavourOS 환경에서 실행할 바이너리·의존성 목록·desktop entry를 제공한다. 자동 업데이트는 후속 작업으로 둔다. Mac 서명·공증 자격증명과 서버 호스트가 없으면 미완료 항목으로 명시하며 우회 설정을 권하지 않는다. 외부 서버는 TLS 종료와 지속 SQLite 저장소가 있는 단일 프로세스로 배포할 수 있게 문서화하되 호스트·비용 결정 없이 배포하지 않는다.
 - [ ] **5. 최종 사용 증거와 의존성 고지를 검토하고 `git add packaging THIRD_PARTY_NOTICES.md README.md docs tests CMakeLists.txt` 후 `git commit -m "feat: validate and package the first paired desktop release"`한다.**
+
+Task8 배포 변경 승인(2026-10-17): 사용자는 무료 상시 운영을 위해 Cloudflare Workers + SQLite Durable Objects 이식을 선택했다. [보충 계획](2026-10-17-cloudflare-deployment.md)을 따르며 C++ 서버는 기준 구현으로 유지한다. 로컬 Worker와 실제 Qt/QML 두 프로세스·macOS 설치 이미지는 검증했다. 외부 계정 인증/배포, native30분 최종 기록 및 독립 리뷰는 진행 중이다. Linux 실기는 계속 유예한다. Developer ID가 없어 현재 산출물은 ad-hoc local build다.
 
 ## 계획 자체 검토
 
