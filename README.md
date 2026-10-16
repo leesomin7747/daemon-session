@@ -6,7 +6,7 @@ A desktop space where interactions with daemons make working apart feel like wor
 
 ## 현재 단계
 
-제품 기획과 브라우저 인터랙션 목업을 승인하고 구현 계획을 작성한 단계입니다. 실제 OS 오버레이, 두 컴퓨터 간 통신, 설치 가능한 앱은 아직 구현하지 않았습니다.
+제품 기획과 브라우저 인터랙션 목업을 승인하고, 첫 단계인 네이티브 오버레이 검증용 앱을 구현 중입니다. macOS에서 빌드·일부 실제 입력 검증을 마쳤으며, KDE Wayland 실기 검증은 남아 있습니다. 두 컴퓨터 간 통신과 제품 앱은 아직 구현하지 않았습니다.
 
 첫 MVP는 두 사람의 비공개 세션을 대상으로 하며, 더 많은 데몬을 위한 확장은 이후에 다룹니다. 첫 지원 목표는 macOS와 KDE Plasma의 Wayland 환경입니다.
 
@@ -28,6 +28,30 @@ A desktop space where interactions with daemons make working apart feel like wor
 
 ## 개발 방향
 
-Qt 6, QML/C++, CMake와 KDE LayerShellQt 연동을 초기 기술 후보로 검토합니다. 실제 macOS와 KDE Wayland에서 투명 표시, 클릭 통과, 키보드 포커스와 배율 대응을 검증한 뒤 제품 구현을 진행합니다. 빌드와 설치 명령은 검증된 실행 환경이 준비되면 추가합니다.
+Qt 6, QML/C++, CMake와 KDE LayerShellQt 연동을 초기 기술 후보로 검토합니다. 실제 macOS와 KDE Wayland에서 투명 표시, 클릭 통과, 키보드 포커스와 배율 대응을 검증한 뒤 제품 구현을 진행합니다.
+
+## 오버레이 probe 실행
+
+macOS에서 확인한 환경은 macOS 26.4 arm64, Qt 6.11.2, CMake 4.4.4, Ninja 1.13.2입니다. Apple Command Line Tools와 Homebrew가 설치된 상태에서:
+
+```sh
+brew install qtbase qtdeclarative cmake ninja
+cmake --preset dev -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+cmake --build --preset dev
+ctest --preset dev
+open build/probes/overlay/overlay_probe.app
+```
+
+EndeavourOS/KDE Wayland용 구성은 아래와 같습니다. **아직 해당 컴퓨터에서 빌드·실행하지 않은 절차**입니다. 시스템의 패키지 버전을 일관되게 유지한 상태에서 실행하세요.
+
+```sh
+sudo pacman -S --needed base-devel cmake ninja qt6-base qt6-declarative qt6-wayland layer-shell-qt
+cmake --preset dev
+cmake --build --preset dev
+ctest --preset dev
+QT_QPA_PLATFORM=wayland ./build/probes/overlay/overlay_probe
+```
+
+probe에는 이동 가능한 두 테스트 캐릭터, 뒤 창 클릭 카운터, 3초마다 자동 ping, WIP 입력창이 있습니다. 네트워크 연결 없이 OS 창 동작만 검증합니다. 상세 절차와 항목별 실제 결과는 [오버레이 검증 기록](docs/verification/overlay.md)에 있습니다. 테스트의 `QT_SCALE_FACTOR=1.25` 결과는 실제 KWin 125% 검증을 대체하지 않습니다.
 
 작업 규칙은 [AGENTS.md](AGENTS.md)에 있습니다. lifecycle hook은 정확한 정의에 대한 사용자 검토·승인 없이 사용하지 않습니다.
