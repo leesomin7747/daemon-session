@@ -110,7 +110,7 @@ Linux에서는 `QT_QPA_PLATFORM=wayland ./build/desktop/daemon-session`로 실�
 
 `ctest --test-dir build -R pet --output-on-failure`는 상태 모델, 실제 QML 장면, 네이티브 입력 mask와 실행 smoke를 검사합니다. 장면·배율·포커스의 실제 결과는 [QML 펫 장면 검증 기록](docs/verification/pet-scene.md)에 있습니다.
 
-메뉴바/트레이의 데몬 아이콘에서도 내 펫·친구 펫·받은 것을 열 수 있습니다. Tab/Shift+Tab으로 이동하고 Space로 버튼을 실행하며 Escape로 닫습니다. 편집기의 Enter는 줄바꿈이며, 한글 조합 중에는 저장·발송하지 않습니다. 긴 받은 목록은 Page Up/Down으로 읽고 ‘확인하고 정리’를 누를 때만 비웁니다. busy 수신과 busy 해제는 받은 창을 자동으로 열지 않습니다.
+메뉴바/트레이의 데몬 아이콘에서도 내 펫·친구 펫·받은 것을 열 수 있습니다. Tab/Shift+Tab으로 이동하고 Space로 버튼을 실행하며 Escape로 닫습니다. 편집기의 Enter는 줄바꿈이며, 한글 조합 중에도 유효한 초안이면 버튼을 누를 수 있고, 조합을 확정한 뒤 저장·발송합니다. 긴 받은 목록은 Page Up/Down으로 읽고 ‘확인하고 정리’를 누를 때만 비웁니다. busy 수신과 busy 해제는 받은 창을 자동으로 열지 않습니다.
 
 글자 수는 공통 C++ 검증으로 trim 후 Unicode code point를 셉니다. 글자 수를 넘으면 버튼을 비활성화하며 이모지의 절반을 잘라내지 않습니다. 저장·발송·정리는 확정 이벤트를 받은 뒤 반영하고, 거부된 쪽지의 초안은 열린 패널에 유지합니다. 닫은 초안과 로컬 미리보기 상태는 종료 후 보관하지 않습니다. 패널 동작·포커스·실제 한글 확인은 [패널 검증 기록](docs/verification/panels.md)에 있습니다.
 

@@ -50,22 +50,29 @@ private slots:
         actions[0]->trigger(); actions[1]->trigger(); actions[2]->trigger(); actions[4]->trigger();
         QCOMPARE(own.size(),1); QCOMPARE(peer.size(),1); QCOMPARE(inbox.size(),1); QCOMPARE(quit.size(),1);
     }
-    void preeditCannotSubmitAndCommitPreservesUnicode() {
+    void composingTextCanBeSavedWithOneClick_data() {
+        QTest::addColumn<QString>("kind"); QTest::addColumn<QString>("peer");
+        QTest::addColumn<QString>("editorName"); QTest::addColumn<QString>("buttonName");
+        QTest::newRow("WIP")<<"wip"<<"a"<<"wipEditor"<<"saveWip";
+        QTest::newRow("note")<<"note"<<"b"<<"noteEditor"<<"sendNote";
+    }
+    void composingTextCanBeSavedWithOneClick() {
+        QFETCH(QString,kind); QFETCH(QString,peer); QFETCH(QString,editorName); QFETCH(QString,buttonName);
         SceneModel model; OverlayWindow window(QApplication::primaryScreen()); load(window,model);
-        open(window,"wip");
-        auto* editor=item(window.rootObject(),"wipEditor"); auto* save=item(window.rootObject(),"saveWip");
+        open(window,kind,peer);
+        auto* editor=item(window.rootObject(),editorName); auto* save=item(window.rootObject(),buttonName);
         QVERIFY(editor); QVERIFY(save); editor->forceActiveFocus();
         QSignalSpy requests(&model,&SceneModel::actionRequested);
         QInputMethodEvent preedit(QString("한"),{}); QCoreApplication::sendEvent(editor,&preedit);
         QVERIFY(editor->property("inputMethodComposing").toBool());
-        QVERIFY(!save->isEnabled());
+        QVERIFY2(save->isEnabled(),"A valid composing draft must not require an extra outside click");
         QVERIFY(QMetaObject::invokeMethod(save,"clicked")); QCOMPARE(requests.size(),0);
         QCOMPARE(editor->property("text").toString(),QString());
         QInputMethodEvent commit; const QString text=QString::fromUtf8("한글 😀\n<b>과제</b>");
         commit.setCommitString(text); QCoreApplication::sendEvent(editor,&commit);
         QVERIFY(!editor->property("inputMethodComposing").toBool());
-        QCOMPARE(editor->property("text").toString(),text); QVERIFY(save->isEnabled());
-        QVERIFY(QMetaObject::invokeMethod(save,"clicked")); QCOMPARE(requests.size(),1);
+        QCOMPARE(editor->property("text").toString(),text);
+        QTRY_COMPARE(requests.size(),1);
         QCOMPARE(requests.at(0).at(2).toString(),text);
     }
     void explicitTrayEntryAndEscapeRestoreWorkbenchFocus() {

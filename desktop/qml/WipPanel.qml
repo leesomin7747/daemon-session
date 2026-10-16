@@ -17,6 +17,12 @@ PanelFrame {
         if(editorLoader.item) editorLoader.item.text=e.text
         return true
     }
+    function submitWip() {
+        var field=editorLoader.item
+        if(!field || field.inputMethodComposing || pending || !localOnline || !model.textValid("setWip",field.text)) return
+        submittedText=model.normalizedText(field.text); pending=true; statusText="저장 중…"
+        actionChosen("setWip",field.text,false)
+    }
     Loader {
         id: editorLoader; width: panel.bodyWidth; active: panel.localPeer
         sourceComponent: MemoField {
@@ -24,6 +30,7 @@ PanelFrame {
             height: Math.max(36,Math.min(78,panel.viewportHeight-8))
             label: "내 WIP"; placeholderText: "지금 작업 중인 것"
             readOnly: panel.pending
+            onCommitReady: panel.submitWip()
             Component.onCompleted: text=panel.peer.wip
         }
     }
@@ -34,17 +41,16 @@ PanelFrame {
     }
     Text {
         objectName: "textCount"; visible: panel.localPeer; width: panel.bodyWidth
-        text: (panel.model?panel.model.textLength(editorLoader.item?editorLoader.item.text:""):0)+" / 80"
+        text: (panel.model?panel.model.textLength(editorLoader.item?editorLoader.item.draftText:""):0)+" / 80"
         color: "#c6d2c5"; font.pixelSize: 11; horizontalAlignment: Text.AlignRight
     }
     PanelButton {
         objectName: "saveWip"; visible: panel.localPeer; width: panel.bodyWidth; primary: true
         text: panel.pending?"저장 중…":"WIP 저장"
-        enabled: panel.model && panel.localOnline && !panel.pending && editorLoader.item && !editorLoader.item.inputMethodComposing && panel.model.textValid("setWip",editorLoader.item.text)
+        enabled: panel.model && panel.localOnline && !panel.pending && editorLoader.item && !editorLoader.item.commitRequested && panel.model.textValid("setWip",editorLoader.item.draftText)
         onClicked: {
             if(!enabled) return
-            panel.submittedText=panel.model.normalizedText(editorLoader.item.text); panel.pending=true; panel.statusText="저장 중…"
-            panel.actionChosen("setWip",editorLoader.item.text,false)
+            editorLoader.item.requestCommit()
         }
     }
     Row {

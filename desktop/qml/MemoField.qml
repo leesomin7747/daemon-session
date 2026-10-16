@@ -6,6 +6,18 @@ ScrollView {
     property alias text: input.text
     property alias readOnly: input.readOnly
     readonly property bool inputMethodComposing: input.inputMethodComposing
+    readonly property string draftText: input.text.slice(0,input.cursorPosition)+input.preeditText+input.text.slice(input.cursorPosition)
+    property bool commitRequested: false
+    signal commitReady()
+    function requestCommit() {
+        commitRequested=true
+        Qt.inputMethod.commit()
+        Qt.callLater(finishCommit)
+    }
+    function finishCommit() {
+        if(!commitRequested || input.inputMethodComposing) return
+        commitRequested=false; commitReady()
+    }
     property string editorName: ""
     property string label: ""
     property string placeholderText: ""
@@ -18,5 +30,6 @@ ScrollView {
         width: field.availableWidth; height: Math.max(implicitHeight,field.availableHeight)
         Accessible.name: field.label; placeholderText: field.placeholderText
         background: null
+        onInputMethodComposingChanged: Qt.callLater(field.finishCommit)
     }
 }
